@@ -4,10 +4,9 @@ require_once 'app/controllers/game.api.controller.php';
 
 $router = new Router();
 
-#                  endpoint                     verbo           controller         metodo
-$router->addRoute('x'                         ,''       ,  'GameApiController',   '');  
+#                  endpoint                   verbo           controller             metodo
+$router->addRoute('aprende'                  ,'GET'       ,  'GameApiController',   'getAll');  
 
 
 $router->route($_GET['resource'], $_SERVER['REQUEST_METHOD']);  
-
 

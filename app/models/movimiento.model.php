@@ -1,7 +1,7 @@
 <?php
 require_once './config/config.php';
 
-class PokemonModel {
+class MovimientoModel {
     private $db;
 
     public function __construct() {
@@ -11,7 +11,7 @@ class PokemonModel {
     }
 
     public function getAll(){
-        $query = $this->db->prepare('SELECT * FROM pokemon');
+        $query = $this->db->prepare('SELECT * FROM movimiento');
         $query->execute();
         return $query->fetchAll(PDO::FETCH_OBJ);
     }
