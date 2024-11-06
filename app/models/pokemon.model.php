@@ -15,7 +15,13 @@ class PokemonModel {
         $query->execute();
         return $query->fetchAll(PDO::FETCH_OBJ);
     }
-
+    
+    public function get($id){
+        $query = $this->db->prepare('SELECT nro_pokedex, nombre, tipo, fecha_captura, peso, FK_id_entrenador, imagen_pokemon 
+                                     FROM pokemon WHERE id=?');
+        $query->execute([$id]);
+        return $query->fetch(PDO::FETCH_OBJ);
+    }
     
 
 }

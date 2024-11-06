@@ -15,7 +15,12 @@ class MovimientoModel {
         $query->execute();
         return $query->fetchAll(PDO::FETCH_OBJ);
     }
-
+    
+    public function get($id){
+        $query = $this->db->prepare('SELECT * FROM movimiento WHERE id_movimiento=?');
+        $query->execute([$id]);
+        return $query->fetch(PDO::FETCH_OBJ);
+    }
     
 
 }
