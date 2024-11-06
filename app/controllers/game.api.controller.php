@@ -21,13 +21,20 @@ class GameApiController {
         // if(!$res->user) {
         //     return $this->view->response("No autorizado", 401);
         // }
+        $filter_type = null;
+        if(!isset($req->query->$filter_type))  
+            $filter_type=$req->query->filter_type;
+
+        $filter_name = null;
+        if(!isset($req->query->$filter_name))  
+            $filter_name=$req->query->filter_name;
 
         $orderBy = null;
         if(isset($req->query->order)){
             $orderBy = $req->query->order;
-        }
+        }   
 
-        $pokemonMovements = $this->aprende_model->getAll($orderBy);
+        $pokemonMovements = $this->aprende_model->getAll($filter_name,$filter_type,$orderBy);
         if(!$pokemonMovements){
             $this->view->response("La tabla aprende no cuenta con filas",404);
             return;
