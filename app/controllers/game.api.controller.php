@@ -22,7 +22,12 @@ class GameApiController {
         //     return $this->view->response("No autorizado", 401);
         // }
 
-        $pokemonMovements = $this->aprende_model->getAll();
+        $orderBy = null;
+        if(isset($req->query->order)){
+            $orderBy = $req->query->order;
+        }
+
+        $pokemonMovements = $this->aprende_model->getAll($orderBy);
         if(!$pokemonMovements){
             $this->view->response("La tabla aprende no cuenta con filas",404);
             return;
@@ -45,7 +50,7 @@ class GameApiController {
                 
                 $pokemon->movimientos = [];
                 array_push($pokemon->movimientos,$movement); // a pokemon le creo un arreglo de movimientos e inserto el actual
-                $result[$movement_learned->FK_id_pokemon] =$pokemon; // incerto el pokemon en el resultado 
+                $result[$movement_learned->FK_id_pokemon] = $pokemon; // incerto el pokemon en el resultado 
             }else{// otro movimiento para un pokemon ya agregado a result
                 array_push($result[$movement_learned->FK_id_pokemon]->movimientos,$movement); // incerto al arreglo movimientos el movimiento actual
             }
