@@ -73,27 +73,29 @@ class AprendizajeApiController {
         $id_pokemon = isset($req->query->id_pokemon) ? $req->query->id_pokemon : null;
         $id_movimiento = isset($req->query->id_movimiento) ? $req->query->id_movimiento : null;
         $nivel_aprendizaje = isset($req->query->nivel_aprendizaje) ? $req->query->nivel_aprendizaje : null;
+         
+        if(empty($id_pokemon)){       return $this->view->requirementError_response('id_pokemon');}
+        if(empty($id_movimiento)){    return $this->view->requirementError_response('id_movimiento'); }
+        if(empty($nivel_aprendizaje)){return $this->view->requirementError_response('campo nivel_aprendizaje');}
 
-        if(empty($id_pokemon)){       return $this->view->response('[Requirement_Error]: completar campo id_pokemon',400);}
-        if(empty($id_movimiento)){    return $this->view->response('[Requirement_Error]: completar campo id_movimiento',400); }
-        if(empty($nivel_aprendizaje)){return $this->view->response('[Requirement_Error]: completar campo nivel_aprendizaje',400);}
+        if(!is_numeric($id_pokemon)){       return $this->view->typeError_response('id_pokemon','numerico');}
+        if(!is_numeric($id_movimiento)){    return $this->view->typeError_response('id_movimiento','numerico');}
+        if(!is_numeric($nivel_aprendizaje)){return $this->view->typeError_response('nivel_aprendizaje','numerico');}
+        
 
-        if(!is_numeric($id_pokemon)){       return $this->view->response("[Type_Error]: el campo 'id_pokemon'debe ser un valor numerico", 400);}
-        if(!is_numeric($id_movimiento)){    return $this->view->response("[Type_Error]: el campo 'id_movimiento' debe ser un valor numerico", 400);}
-        if(!is_numeric($nivel_aprendizaje)){return $this->view->response("[Type_Error]: el campo 'nivel_aprendizaje' debe ser un valor numerico", 400);}
-
-        if(!($this->pokemon_model->exists($id_movimiento))){return $this->view->response("[Existence_Error]: el pokemon con id = $id_pokemon no existe, pokemon invalido ",404);}
-        if(!($this->movimiento_model->exists($id_pokemon))){return $this->view->response("[Existence_Error]: el movimiento con id = $id_movimiento no existe, movimiento invalido ",404);}
+        if(!($this->pokemon_model->exists($id_movimiento))){return $this->view->existence_Error_response('Movimiento', $id_movimiento);}
+        if(!($this->movimiento_model->exists($id_pokemon))){return $this->view->existence_Error_response('Pokemon', $id_pokemon);}
         
         $pokemon = $this->pokemon_model->get($id_pokemon);
         $movimiento = $this->movimiento_model->get($id_movimiento);
         $already_exists = $this->aprendizaje_model->exists($id_pokemon , $id_movimiento);
 
-        if($already_exists){return $this->view->response("[AlreadyExists_Error]: el pokemon $pokemon->nombre con id = $id_pokemon, ya cuenta con el movimiento $movimiento->nombre_movimiento con id = $id_movimiento.",404);}
+        if($already_exists){return $this->view->aprendizaje_alreadyExists_Error_response($pokemon, $movimiento);}
         
         $id_aprendizaje = $this->aprendizaje_model->insert($id_pokemon , $id_movimiento, $nivel_aprendizaje);
 
-        if(!($id_aprendizaje)){$this->view->response("[Server_Error]: no se pudo vincular el Pokemon: $pokemon->nombre,con el Movimiento: $movimiento->nombre_movimiento. Vuelve a intentarlo mas tarde",500);}
+        if(!($id_aprendizaje)){return $this->view->aprendizaje_insert_server_Error_response($pokemon, $movimiento);}
+
         $aprendizaje = new stdClass;
         $aprendizaje->id_pokemon = $id_pokemon;
         $aprendizaje->id_movimiento = $id_movimiento;   
