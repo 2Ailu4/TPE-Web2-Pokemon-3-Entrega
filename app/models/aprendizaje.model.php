@@ -9,6 +9,7 @@ class AprendizajeModel {
                             ";dbname=".MYSQL_DB.";charset=utf8", 
                             MYSQL_USER, MYSQL_PASS);
     }
+
     
     public function exists($id_pokemon , $id_movimiento){
         $query = $this->db->prepare('SELECT 1 FROM aprendizaje WHERE FK_id_pokemon = ? AND FK_id_movimiento=?');
@@ -19,91 +20,46 @@ class AprendizajeModel {
 
     // NO SE PERMITE ORDENAR POR MAS DE UN CAMPO 
     public function getAll($filter_pokemon_name=null , $filter_type=null, $SORT_BY = false, $LIMIT_params = false, $ORDER = null) {
-    // public function getAll($filter_pokemon_name=null , $filter_type=null, $ORDER_BY = false, $LIMIT_params = false) {
-        $TABLES = " aprende";
-        $SELECT_attributes = " aprende.*";
+        $TABLES = " aprendizaje";
+        $SELECT_attributes = "aprendizaje.*";
         $WHERE_params= false; // se arma a partir de los filtros ej filter_pokemon_name : 
                                 //WHERE pokemon.nombre like $filter_pokemon_name
-        $SORT = " ORDER BY aprende.FK_id_pokemon";    //orden por defecto
-        
-        $joinPokemon = false;
-        $joinMovimiento = false;
+        $SORT = " ORDER BY aprendizaje.FK_id_pokemon";    //orden por defecto
         
         if ($SORT_BY) {
             if (in_array($SORT_BY, ['nro_pokedex', 'nombre', 'tipo', 'fecha_captura', 'peso', 'id_entrenador'])) {
-                $joinPokemon = true;
+                $TABLES .= ' JOIN pokemon ON aprendizaje.FK_id_pokemon = pokemon.id';
+                if($SORT_BY === "id_entrenador"){
+                    $SORT = ' ORDER BY pokemon.FK_id_entrenador';
+                }
+                $SORT = ' ORDER BY pokemon.'.$SORT_BY;
             }
             if (in_array($SORT_BY, ['nombre_movimiento', 'tipo_movimiento', 'poder_movimiento', 'precision_movimiento', 'descripcion_movimiento'])) {
-                $joinMovimiento = true;
+                $TABLES .= ' JOIN movimiento ON aprendizaje.FK_id_movimiento = movimiento.id_movimiento';
+                $SORT = ' ORDER BY aprendizaje.FK_id_pokemon ASC, movimiento.'.$SORT_BY;
             }
-        }
-        
-        if ($joinPokemon) {
-            $TABLES .= ' JOIN pokemon ON aprende.FK_id_pokemon = pokemon.id';
-        }
-        if ($joinMovimiento) {
-            $TABLES .= ' JOIN movimiento as m ON a.FK_id_movimiento = m.id_movimiento';
-        }
-        
-        if ($SORT_BY) {
-            switch ($SORT_BY) {
-                // ordenar por campo de aprende
-                case 'FK_id_pokemon':
-                    $SORT_BY = ' ORDER BY a.FK_id_pokemon';
-                    break;
-                case 'FK_id_movimiento':
-                    $SORT_BY = ' ORDER BY a.FK_id_movimiento';
-                    break;
-                case 'nivel_aprendizaje':
-                    $SORT_BY = ' ORDER BY a.nivel_aprendizaje';
-                    break;
-                // ordenar por campo de pokemon
-                case 'nro_pokedex':
-                    $SORT_BY = ' ORDER BY p.nro_pokedex';
-                    break;
-                case 'nombre':
-                    $SORT_BY = ' ORDER BY p.nombre';
-                    break;
-                case 'tipo':
-                    $SORT_BY = ' ORDER BY p.tipo';
-                    break;
-                case 'fecha_captura':
-                    $SORT_BY = ' ORDER BY p.fecha_captura';
-                    break;
-                case 'peso':
-                    $SORT_BY = ' ORDER BY p.peso';
-                    break;
-                case 'id_entrenador':
-                    $SORT_BY = ' ORDER BY p.FK_id_entrenador';
-                    break;
-                // ordenar por campo de movimiento
-                case 'nombre_movimiento':
-                    $SORT_BY = ' ORDER BY m.nombre_movimiento';
-                    break;
-                case 'tipo_movimiento':
-                    $SORT_BY = ' ORDER BY m.tipo_movimiento';
-                    break;
-                case 'poder_movimiento':
-                    $SORT_BY = ' ORDER BY m.poder_movimiento';
-                    break;
-                case 'precision_movimiento':
-                    $SORT_BY = ' ORDER BY m.precision_movimiento';
-                    break;
-                case 'descripcion_movimiento':
-                    $SORT_BY = ' ORDER BY m.descripcion_movimiento';
-                    break;
-
-                default:
-                    break;
+            if (in_array($SORT_BY, ['id_pokemon', 'id_movimiento', 'nivel_aprendizaje'])) {
+                if($SORT_BY === "id_pokemon"){
+                    $SORT = ' ORDER BY aprendizaje.FK_id_pokemon';
+                }else{
+                    if($SORT_BY === "id_movimiento"){
+                        $SORT = ' ORDER BY aprendizaje.FK_id_movimiento';
+                    }else{
+                        $SORT = ' ORDER BY aprendizaje.FK_id_pokemon ASC, aprendizaje.nivel_aprendizaje';
+                    }
+                }
             }
         }
 
-        $sql = "SELECT $SELECT_attributes FROM $TABLES ";  // agregar que liste la info del campo por el que se ordena 
-        
-        if($WHERE_params) $sql .=  "WHERE ".$WHERE_params;
+        $sql = "SELECT $SELECT_attributes FROM $TABLES ";  
+
+        if($WHERE_params){ $sql .=  "WHERE ".$WHERE_params;}
         if($SORT){$sql .=  $SORT;}
-        if($SORT_BY) $sql .=  $SORT_BY;
-        if($LIMIT_params) $sql .= "LIMIT ".$LIMIT_params;
+        if($LIMIT_params){ $sql .= "LIMIT ".$LIMIT_params;}
+        if($ORDER === "DESC"){ $sql .= ' DESC';}
+                         else{$sql .= ' ASC';}    //por defecto es ASC
+
+        var_dump("SQLLLL------->", $sql);
 
         $query = $this->db->prepare($sql);
         $query->execute();
@@ -129,4 +85,47 @@ class AprendizajeModel {
         return ['id_pokemon' => intval($id_pokemon) , 'id_movimiento' => intval($id_movimiento)];
         
     }
+   
+    public function update($id_pokemon, $id_movimiento, $ASSOC_UPD_params){
+        $whereParams="FK_id_pokemon = :id_pok and FK_id_movimiento = :id_mov";
+        $fields = $this->generate_update_params($ASSOC_UPD_params); 
+        // var_dump("FIELDDDSSS", $fields);
+
+        $ASSOC_Array = $fields['ASSOC_ARRAY'];
+        $ASSOC_Array[':id_pok'] = intval($id_pokemon);
+        $ASSOC_Array[':id_mov'] = intval($id_movimiento);
+        var_dump("WHEREEEE", $whereParams);
+        
+        $updateParams = $fields['SET_params'];
+        var_dump("UPDATEEEEE", $updateParams);
+
+        $query = $this->db->prepare("UPDATE aprendizaje SET $updateParams WHERE $whereParams");
+        $query->execute($ASSOC_Array);
+        if ($query->rowCount() > 0){
+            return $fields['ASSOC_ARRAY'];
+        }
+        else
+            return false;
+    }
+
+    private function generate_update_params(array $field){
+        $SET_params='';
+        $ASSOC_Params_array=[];
+        $num_of_fields = count($field);
+
+        $i=0;
+        foreach ($field as $key => $value) {
+                $associate=':'.$key;
+                $SET_params .= $key . ' = '.$associate; //id = :id
+
+                $ASSOC_Params_array[$associate] = $value;   //[':id'=>value, ...]
+                $i++;
+                if($i< $num_of_fields)
+                    $SET_params.=', ';
+        }
+        return ['ASSOC_ARRAY'=>$ASSOC_Params_array,'SET_params'=>$SET_params];
+    }
 }
+
+
+
