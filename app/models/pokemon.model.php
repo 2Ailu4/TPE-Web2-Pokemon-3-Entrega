@@ -9,6 +9,12 @@ class PokemonModel {
                             ";dbname=".MYSQL_DB.";charset=utf8", 
                             MYSQL_USER, MYSQL_PASS);
     }
+    
+    public function exists($id){
+        $query = $this->db->prepare('SELECT 1 FROM pokemon WHERE id=?');
+        $query->execute([$id]);
+        return $query->fetch(PDO::FETCH_OBJ);
+    }
 
     public function getAll(){
         $query = $this->db->prepare('SELECT * FROM pokemon');
@@ -22,6 +28,4 @@ class PokemonModel {
         $query->execute([$id]);
         return $query->fetch(PDO::FETCH_OBJ);
     }
-    
-
 }

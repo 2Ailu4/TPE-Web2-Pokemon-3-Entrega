@@ -10,6 +10,12 @@ class MovimientoModel {
                             MYSQL_USER, MYSQL_PASS);
     }
 
+    public function exists($id){
+        $query = $this->db->prepare('SELECT 1 FROM movimiento WHERE id_movimiento=?');
+        $query->execute([$id]);
+        return $query->fetch(PDO::FETCH_OBJ);
+    }
+
     public function getAll(){
         $query = $this->db->prepare('SELECT * FROM movimiento');
         $query->execute();
@@ -21,6 +27,17 @@ class MovimientoModel {
         $query->execute([$id]);
         return $query->fetch(PDO::FETCH_OBJ);
     }
-    
 
+    public function insert($nombre, $tipo, $poder, $precision, $descripcion){
+        $query = $this->db->prepare('INSERT INTO movimiento ( nombre_movimiento, tipo_movimiento, poder_movimiento,
+                                                              precision_movimiento, descripcion_movimiento)
+                                                 VALUES (?,?,?,?,?)');
+        $query->execute([$nombre, $tipo,$poder, $precision, $descripcion]);
+        return $query->fetch(PDO::FETCH_OBJ);
+    }
+
+    public function update($id){
+        $query = $this->db->prepare('');
+        $query->execute();
+    }
 }
