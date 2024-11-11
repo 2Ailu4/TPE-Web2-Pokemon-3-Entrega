@@ -21,23 +21,20 @@ class AprendizajeApiController {
         // if(!$res->user) {
         //     return $this->view->response("No autorizado", 401);
         // }
-        $filter_type = null;
-        $filter_name = null;
-        $sortBy = null;
-        $order = null;
-        $limit = null;
-        
-        if(isset($req->query->filter_type)){ $filter_type = $req->query->filter_type;}
-        if(isset($req->query->filter_name)){ $filter_name = $req->query->filter_name;}
-        if(isset($req->query->sort)){ $sortBy = $req->query->sort;}   
-        if(isset($req->query->order)){ $order = $req->query->order;}
+        $page = isset($req->query->page) ? $req->query->page : null;
+        $filters=[];
+         
+        if(isset($req->query->filter_name)) {$filters['filter_name']=$req->query->filter_name;}
+        if(isset($req->query->filter_type)) {$filters['filter_type']=$req->query->filter_type;}
+        if(isset($req->query->filter_nro_pokedex)) {$filters['filter_nro_pokedex']=$req->query->filter_nro_pokedex;}
 
-        $relaciones = $this->aprendizaje_model->getAll($filter_name,$filter_type,$sortBy,$limit, $order);
+        $sortBy = isset($req->query->sort)  ? $req->query->sort : null;
+        $order  = isset($req->query->order) ? $req->query->order: null;
+        $limit  = isset($req->quety->limit) ? $req->query->limit: null;
+        var_dump($filters);
+        $relaciones = $this->aprendizaje_model->getAll($filters, $sortBy, $order, $limit, $page);
 
-        if(!$relaciones){
-            $this->view->response("La tabla aprende no cuenta con filas", 404);
-            return;
-        }
+        if(!$relaciones){return $this->view->response("No se encontraron coincidencias para la busqueda", 404);}
 
         $result = [];
         foreach($relaciones as $movement_learned){
@@ -66,13 +63,19 @@ class AprendizajeApiController {
         $this->view->response($result);
     }
 
-    // ('aprendizaje'                  ,'POST'      ,  'AprendizajeApiController',   'insert'); 
+    public function get($req, $res){
+        // id:,id_mov me da un (id_p,id_mov,niv_pok) ==> pokemon . movimiento (info del movimiento) . niv_aprendizaje
+
+        //idpok:  ==> pokemon . movimientos(arr_movimientos)
+        //id_mov:  ==> pokemons(arr_pokemons) . movimientos
+        
+    }
 
     public function insert($req, $res){
-    
-        $id_pokemon = isset($req->query->id_pokemon) ? $req->query->id_pokemon : null;
-        $id_movimiento = isset($req->query->id_movimiento) ? $req->query->id_movimiento : null;
-        $nivel_aprendizaje = isset($req->query->nivel_aprendizaje) ? $req->query->nivel_aprendizaje : null;
+
+        $id_pokemon = isset($req->body->id_pokemon) ? $req->body->id_pokemon : null;
+        $id_movimiento = isset($req->body->id_movimiento) ? $req->body->id_movimiento : null;
+        $nivel_aprendizaje = isset($req->body->nivel_aprendizaje) ? $req->body->nivel_aprendizaje : null;
          
         if(empty($id_pokemon)){       return $this->view->requirementError_response('id_pokemon');}
         if(empty($id_movimiento)){    return $this->view->requirementError_response('id_movimiento'); }

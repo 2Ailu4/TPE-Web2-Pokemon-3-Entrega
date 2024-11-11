@@ -42,4 +42,8 @@
         public function aprendizaje_insert_server_Error_response($pokemon, $movimiento){
             $this->response("[Server_Error]: no se pudo vincular el Pokemon: $pokemon->nombre,con el Movimiento: $movimiento->nombre_movimiento. Vuelve a intentarlo mas tarde",500);
         }
+
+        public function invalid_params_response($check_parameters){
+            $this->response("[Invalid_params_Error]: Revisa los parametros de $check_parameters",400);
+        }
     }
