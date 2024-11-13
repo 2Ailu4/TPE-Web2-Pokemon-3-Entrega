@@ -1,6 +1,6 @@
 <?php
 require_once 'libs/router.php';
-require_once 'app/controllers/game.api.controller.php';
+require_once 'app/controllers/aprendizaje.api.controller.php';
 
 $router = new Router();
 

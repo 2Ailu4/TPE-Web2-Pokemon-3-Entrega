@@ -17,75 +17,68 @@ class AprendizajeModel {
 
         return $query->fetch(PDO::FETCH_OBJ);
     }
-    
-    private function get_WHERE_params($filters,$FROM_TABLE){
-        $validFilters=[];
-        if($FROM_TABLE === 'aprendizaje'){$validFilters=['id_pokemon_aprendizaje' => 'aprendizaje.FK_id_pokemon', 'id_movimiento_aprendizaje' => 'aprendizaje.FK_id_movimiento','nivel_aprendizaje' => 'aprendizaje.nivel_aprendizaje'];}     
-        if($FROM_TABLE === 'movimiento'){$validFilters = ['id_movimiento' => 'movimiento.id_movimiento', 'nombre_movimiento' => 'movimiento.nombre_movimiento', 'tipo_movimiento' => 'movimiento.tipo_movimiento'];}
-        if($FROM_TABLE === 'pokemon'){$validFilters = ['filter_name' =>'pokemon.nombre','filter_type' =>'pokemon.tipo','filter_nro_pokedex'=>'pokemon.nro_pokedex','filter_trainer'=>'$pokemon.FK_id_entrenador'];}
-        $where=[]; $params=[]; 
-        
-        foreach($validFilters as $filter_column => $real_column){
-            if(isset($filters[$filter_column])) {
-                $key = ":$filter_column";
-                $where["$filter_column"] = "$real_column = $key";   
-                $params[$key] = $filters[$filter_column];
-            }
-        }
-        return ['where'=>$where,'params'=>$params];
-    }
 
-    // NO SE PERMITE ORDENAR POR MAS DE UN CAMPO 
-    public function getAll( $filters, $SORT_BY = false, $ORDER = null, $LIMIT = false, $page = null) {
+    public function getAll( $filters=[], $sorts =[],$page = null, $LIMIT = null ) {
         $TABLES = " aprendizaje";
         $SELECT_attributes = "aprendizaje.*";
 
-        // si filters no esta vacio, obtiene los arreglos
-        $WHERE_params= []; // $where (arreglo de filtros para consulta sql) y $params (parametros $key=>value "sanitizados")
-                           
-        $where = []; // arreglo de condiciones ['filter_name' => "pokemon.nombre = :filter_name", 'filter_nro_pokedex' => "nro_pokedex = :filter_nro_pokedex",..]
-        $params = [];// arreglo de parametros  [':filter_name' => "Bulbasaur", ':filter_nro_pokedex' => 1,..]
-
-        $SORT = " ORDER BY aprendizaje.FK_id_pokemon";    //orden por defecto
-        $pokemonFields = ['nro_pokedex', 'nombre', 'tipo', 'fecha_captura', 'peso', 'id_entrenador'];
+        $JOINs  = [];    
+        $where  = [];   // arreglo de condiciones ['filter_name' => "pokemon.nombre = :filter_name", 'filter_nro_pokedex' => "nro_pokedex = :filter_nro_pokedex",..]
+        $params = [];   // arreglo de parametros  [':filter_name' => "Bulbasaur", ':filter_nro_pokedex' => 1,..]
          
-        if ($SORT_BY) {
-            if (in_array($SORT_BY, $pokemonFields)) { 
-                $TABLES .= ' JOIN pokemon ON aprendizaje.FK_id_pokemon = pokemon.id';
-                if($SORT_BY === "id_entrenador"){
-                    $SORT = ' ORDER BY pokemon.FK_id_entrenador';
-                }else $SORT = ' ORDER BY pokemon.'.$SORT_BY; 
-                $WHERE_params=$this->get_WHERE_params($filters,'pokemon');
-            }
-            if (in_array($SORT_BY, ['nombre_movimiento', 'tipo_movimiento', 'poder_movimiento', 'precision_movimiento', 'descripcion_movimiento'])) {
-                $TABLES .= ' JOIN movimiento ON aprendizaje.FK_id_movimiento = movimiento.id_movimiento';
-                $SORT = ' ORDER BY aprendizaje.FK_id_pokemon ASC, movimiento.'.$SORT_BY;
-                $WHERE_params=$this->get_WHERE_params($filters, 'movimiento');
-            }
-            if (in_array($SORT_BY, ['id_pokemon', 'id_movimiento', 'nivel_aprendizaje'])) {
-                if($SORT_BY === "id_pokemon"){
-                    $SORT = ' ORDER BY aprendizaje.FK_id_pokemon';
-                }else{
-                    if($SORT_BY === "id_movimiento"){
-                        $SORT = ' ORDER BY aprendizaje.FK_id_movimiento';
-                    }else{
-                        $SORT = ' ORDER BY aprendizaje.FK_id_pokemon ASC, aprendizaje.nivel_aprendizaje';
-                    }
-                }
-                $WHERE_params=$this->get_WHERE_params($filters,'aprendizaje');
-            }
+        $valid_query_params = $this->_getQueryFields_WITH_TableColumns();
+        foreach($valid_query_params as $table_name => $validQuerys){            // $validQuerys: campos de cada tabla(table_name).Ej pokemon: [id,nro_pok,..]
+            $WHERE_params=$this->get_WHERE_params($filters,$validQuerys);
+            if(!empty($WHERE_params['where'])){
+                $JOINs[$table_name] = true;
+                $where = array_merge($where,$WHERE_params['where']);
+                $params = array_merge($params,$WHERE_params['params']);
+            }    
+            //REFACTOR LOGICA AILEN/// 
+        }     
+        //DEFAULT SORT::           
+        $SORT = " ORDER BY aprendizaje.FK_id_pokemon ASC, aprendizaje.FK_id_movimiento ASC, aprendizaje.nivel_aprendizaje ASC";    
+        
+        //REFACTOR LOGICA AILEN/// 
+        if (!empty($sorts) || !empty($filters)) {
+            
+            if(isset($JOINs['pokemon'])) {$TABLES .= ' JOIN pokemon ON aprendizaje.FK_id_pokemon = pokemon.id';}
+            if(isset($JOINs['movimiento'])) {$TABLES .= ' JOIN movimiento ON aprendizaje.FK_id_movimiento = movimiento.id_movimiento';}  
+            //REFACTORLOGICA AILEN///                
         }
+        /// A REFACTORIZAR:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+        //$pokemonFields = ['nro_pokedex', 'nombre', 'tipo', 'fecha_captura', 'peso', 'id_entrenador'];
+        // if ($SORT_BY) {
+            // if (in_array($SORT_BY, $pokemonFields) || in_array('pokemon',$JOINs)) { 
+            //     $TABLES .= ' JOIN pokemon ON aprendizaje.FK_id_pokemon = pokemon.id';
+            //     if($SORT_BY === "id_entrenador"){
+            //         $SORT = ' ORDER BY pokemon.FK_id_entrenador';
+            //     }else $SORT = ' ORDER BY pokemon.'.$SORT_BY; 
+            //     $WHERE_params=$this->get_WHERE_params($filters,$valid_query_params['pokemon']);
+            // }
+            // if (in_array($SORT_BY, ['nombre_movimiento', 'tipo_movimiento', 'poder_movimiento', 'precision_movimiento', 'descripcion_movimiento'])) {
+            //     $TABLES .= ' JOIN movimiento ON aprendizaje.FK_id_movimiento = movimiento.id_movimiento';
+            //     $SORT = ' ORDER BY aprendizaje.FK_id_pokemon ASC, movimiento.'.$SORT_BY;
+            //     $WHERE_params=$this->get_WHERE_params($filters, ['movimiento']);
+            // }
+            // if (in_array($SORT_BY, ['id_pokemon', 'id_movimiento', 'nivel_aprendizaje'])) {
+            //     if($SORT_BY === "id_pokemon"){
+            //         $SORT = ' ORDER BY aprendizaje.FK_id_pokemon';
+            //     }else{
+            //         if($SORT_BY === "id_movimiento"){
+            //             $SORT = ' ORDER BY aprendizaje.FK_id_movimiento';
+            //         }else{
+            //             $SORT = ' ORDER BY aprendizaje.FK_id_pokemon ASC, aprendizaje.nivel_aprendizaje';
+            //         }
+            //     }
+            //     $WHERE_params=$this->get_WHERE_params($filters,['aprendizaje']);
+            // }
+        //}
+      
         $sql = "SELECT $SELECT_attributes FROM $TABLES "; 
-        var_dump($WHERE_params) ;
-        $where = isset($WHERE_params['where']) ? $WHERE_params['where'] : []; 
-        if(!empty($where)){
-            $params = $WHERE_params['params'];
-            $sql .= " WHERE ( (" . implode(') AND ( ', $where).") ) ";
-        }
+        if(!empty($where)){$sql .= " WHERE ( (" . implode(') AND ( ', $where).") ) ";}
         if($SORT){$sql .=  $SORT;}
         if($LIMIT){ $sql .= "LIMIT ".$LIMIT;}
-        if($ORDER === "DESC"){ $sql .= ' DESC';}
-                         else{$sql .= ' ASC';}    //por defecto es ASC
 
         var_dump("SQLLLL------->", $sql);
 
@@ -95,8 +88,8 @@ class AprendizajeModel {
     } 
 
     public function get($id_pokemon , $id_movimiento){
-        $query = $this->db->prepare('SELECT * FROM aprendizaje WHERE FK_id_pokemon = ? ,FK_id_movimiento=?');
-        $query->execute([$id_pokemon,$id_movimiento]);
+        $query = $this->db->prepare('SELECT * FROM aprendizaje WHERE FK_id_pokemon = :id_p AND FK_id_movimiento = :id_m');
+        $query->execute([':id_p' => $id_pokemon,':id_m' => $id_movimiento]);
 
         return $query->fetch(PDO::FETCH_OBJ);
     }
@@ -136,64 +129,38 @@ class AprendizajeModel {
     }
 
     private function _getQueryFields_WITH_TableColumns(){
-        // Mapeo de campos válidos y sus respectivas columnas en las tablas     
-        return $fieldsMap = [
-            //pokemon
-            'pokemon'=>[
-                'id' => 'pokemon.id',                                       // no lo tiene ORDER
-                'nro_pokedex' => 'pokemon.nro_pokedex',
-                'nombre' => 'pokemon.nombre',
-                'tipo' => 'pokemon.tipo',
-                'fecha_captura' => 'pokemon.fecha_captura',
-                'peso' => 'pokemon.peso',
-                'id_entrenador' => 'pokemon.FK_id_entrenador' 
-            ],
-            //movimiento
-            'movimiento'=>[
-            'id_movimiento' => 'movimiento.id_movimiento',              // no lo tiene ORDER
-            'nombre_movimiento' => 'movimiento.nombre_movimiento',
-            'tipo_movimiento' => 'movimiento.tipo_movimiento',
-            'poder_movimiento' => 'movimiento.poder_movimiento',
-            'precision_movimiento' => 'movimiento.precision_movimiento',
-            'descripcion_movimiento' => 'movimiento.descripcion_movimiento'
-            ],
-            //aprendizaje
-            'aprendizaje'=>[
-                'id_pokemon_aprendizaje' => 'aprendizaje.FK_id_pokemon',       // no lo tiene ORDER
-                'id_movimiento_aprendizaje' => 'aprendizaje.FK_id_movimiento', // no lo tiene ORDER
-                'nivel_aprendizaje' => 'aprendizaje.nivel_aprendizaje'
-            ]
-        ];
-    } 
-
-    public function getQueryFields(){
          
-        function getParamType($tableColumn){
-            // Subcadenas para filtrar
-            $numericSubStrings = ["id", "nro", "nivel", "precision", "peso","poder"]; 
-            $dateSubStrings = ["fecha", "date"];
-            
-            //expresiones regulares (`i` al final para que sea case-insensitive)
-            $numericPattern = "/(" . implode("|", $numericSubStrings) . ")/i";  
-            $datePattern = "/(" . implode("|", $dateSubStrings) . ")/i";  
-
-            if (preg_match($numericPattern, $tableColumn)) {return "NUM";} 
-            if (preg_match($datePattern, $tableColumn)) {return "DATE";}
-            return "STR";
-            
+        $fieldsMap = [
+            //pokemon
+            'pokemon'=>['nro_pokedex' => [],'nombre' => [],'tipo' => [], 'fecha_captura' => [], 'peso' => [],'id_entrenador' => []],
+            //movimiento
+            'movimiento'=>['nombre_movimiento' => [], 'tipo_movimiento' => [], 'poder_movimiento' => [], 'precision_movimiento' => [],'descripcion_movimiento' => []],
+            //aprendizaje
+            'aprendizaje'=>['id_pokemon' => [], 'id_movimiento' => [],'nivel_aprendizaje' => [] ] 
+        ];
+        foreach ($fieldsMap as $table => $columns) {
+            foreach ($columns as $column => $value) {
+                if(in_array($column,['id_entrenador','id_pokemon','id_movimiento']))
+                    $fieldsMap[$table][$column]['query_column'] = 'FK_'.$table . '.' . $column;
+                else $fieldsMap[$table][$column]['query_column'] = $table . '.' . $column;  
+                $fieldsMap[$table][$column]['type'] = $this->getParamType($column); 
+            }
+        }
+        return $fieldsMap;
+    }
+    public function getQueryFields(){
+        // obtiene campos de ordenamientos/filtros, que a su vez son los nombres de las columnas de la tabla
+        $fieldsMap = [
+            'pokemon'=>['nro_pokedex' => null,'nombre' => null,'tipo' => null, 'fecha_captura' => null, 'peso' => null,'id_entrenador' => null],
+            'movimiento'=>['nombre_movimiento' => null, 'tipo_movimiento' => null, 'poder_movimiento' => null, 'precision_movimiento' => null,'descripcion_movimiento' => null],
+            'aprendizaje'=>['id_pokemon' => null, 'id_movimiento' => null,'nivel_aprendizaje' => null ] 
+        ];
+        foreach ($fieldsMap as $table => $columns) {
+            foreach ($columns as $column => $value) {
+                $fieldsMap[$table][$column] = $this->getParamType($column);  
+            }
         } 
-        $fields= $this->_getQueryFields_WITH_TableColumns();
-        $result=[];
-        foreach($fields['pokemon'] as $query_param => $param_type){
-            $result[$query_param] = getParamType($query_param);
-        }
-        foreach($fields['movimiento'] as $query_param => $param_type){
-            $result[$query_param] = getParamType($query_param);
-        }
-        foreach($fields['aprendizaje'] as $query_param => $param_type){
-            $result[$query_param] = getParamType($query_param);
-        }
-        return $result;
+        return $fieldsMap;
     }
 
     private function generate_update_params(array $field){
@@ -212,6 +179,38 @@ class AprendizajeModel {
                     $SET_params.=', ';
         }
         return ['ASSOC_ARRAY'=>$ASSOC_Params_array,'SET_params'=>$SET_params];
+    }
+
+ /// mover a :  class Controlador::  --------------------------------------------------------------------  
+    private function getParamType($tableColumn){
+        // Subcadenas para filtrar
+        $numericSubStrings = ["id", "nro", "nivel", "precision", "peso","poder"]; 
+        $dateSubStrings = ["fecha"];
+        
+        //expresiones regulares (`i` al final para que sea case-insensitive)
+        $numericPattern = "/(" . implode("|", $numericSubStrings) . ")/i";  
+        $datePattern = "/(" . implode("|", $dateSubStrings) . ")/i";  
+
+        if (preg_match($numericPattern, $tableColumn)) {return "num";} 
+        if (preg_match($datePattern, $tableColumn)) {return "date";}
+        return "string";
+        
+    }
+
+    private function get_WHERE_params($filters,$validFilters,$FROM_TABLE = null){
+        $where=[]; $params=[]; 
+        
+        foreach($validFilters as $filter_column => $values){
+            if(isset($filters[$filter_column])) {
+                $sql_OP=' = ';
+                $key = ":$filter_column";
+                if($values['type']==="string") {$sql_OP = ' LIKE ';}
+                if($values['type']==="date") {$sql_OP = ' = ';} // ver la fecha como se consulta
+                $where["$filter_column"] = $values['query_column'] . $sql_OP . $key;   
+                $params[$key] = $filters[$filter_column];
+            }
+        }
+        return ['where'=>$where,'params'=>$params];
     }
 }
 

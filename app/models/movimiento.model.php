@@ -33,7 +33,7 @@ class MovimientoModel {
                                                               precision_movimiento, descripcion_movimiento)
                                                  VALUES (?,?,?,?,?)');
         $query->execute([$nombre, $tipo,$poder, $precision, $descripcion]);
-        return $query->fetch(PDO::FETCH_OBJ);
+        return $this->db->lastInsertId();
     }
 
     public function update($id){
