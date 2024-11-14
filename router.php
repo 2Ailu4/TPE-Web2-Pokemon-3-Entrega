@@ -14,6 +14,8 @@ $router->addMiddleware(new JWTAuthMiddleware());
 #                  endpoint                        verbo           controller                   metodo
 $router->addRoute('aprendizaje'                  ,'GET'       ,  'AprendizajeApiController',   'getAll');  
 $router->addRoute('aprendizaje/:id_pok/:id_mov'  ,'GET'       ,  'AprendizajeApiController',   'get'   );
+//$router->addRoute('aprendizaje/:id_pok'          ,'GET'       ,  'AprendizajeApiController',   'get'   );
+//$router->addRoute('aprendizaje/:id_mov'          ,'GET'       ,  'AprendizajeApiController',   'get'   );
 $router->addRoute('aprendizaje/:id_pok/:id_mov'  ,'PUT'       ,  'AprendizajeApiController',   'update'); 
 $router->addRoute('aprendizaje'                  ,'POST'      ,  'AprendizajeApiController',   'insert'); 
 
