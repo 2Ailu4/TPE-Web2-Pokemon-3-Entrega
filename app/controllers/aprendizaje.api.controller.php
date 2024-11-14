@@ -66,30 +66,13 @@ class AprendizajeApiController {
     }
 
     public function insert($req, $res){
-    ///---------------------LLEVAR A CONTROLADRO GENERICO--------------------------------------------
-        // $updateFields = $req->body;
-        // $valid_fields=$this->model->getValid_TableFields();
-
-        // unset($valid_fields['id']);
-        // foreach($valid_fields as $field_name => $field_type){
-        //     if(!isset($updateFields->$field_name) || empty($updateFields->$field_name)){
-        //         return $this->view->response("Falta completar el campo [$field_name] ", 400);
-        //     }
-        //     if($field_type !== gettype($updateFields->$field_name)){
-        //         return $this->view->response("'$field_name' debe ser de tipo [$field_type]", 400);
-        //     }
-        // }
-    ///--------------------------------------------------------------------------------------------
-
         if(!$res->user) {
             return $this->view->response("No autorizado", 401);
         }
 
-                //  ***************REEMPLAZAR POR LO DE ARRIBA*******************
         $id_pokemon = isset($req->query->id_pokemon) ? $req->query->id_pokemon : null;
         $id_movimiento = isset($req->query->id_movimiento) ? $req->query->id_movimiento : null;
         $nivel_aprendizaje = isset($req->query->nivel_aprendizaje) ? $req->query->nivel_aprendizaje : null;
-        // var_dump("pokemon = $id_pokemon","movimiento = $id_movimiento");
         
         if(empty($id_pokemon)){       return $this->view->requirementError_response('id_pokemon');}
         if(empty($id_movimiento)){    return $this->view->requirementError_response('id_movimiento'); }
@@ -122,9 +105,7 @@ class AprendizajeApiController {
     }
 
 
-    public function get($req, $res){
-        // id:,id_mov me da un (id_p,id_mov,niv_pok) ==> pokemon . movimiento (info del movimiento) . niv_aprendizaje
-        
+    public function get($req, $res){ 
         $id_pokemon = is_numeric($req->params->id_pok)    ? intval($req->params->id_pok) : null;
         $id_movimiento = is_numeric($req->params->id_mov) ? intval($req->params->id_mov) : null;
         
@@ -182,8 +163,7 @@ class AprendizajeApiController {
         $attributesToUpdate = [];
         if(!empty($req->body->FK_id_pokemon)){
             $pokemoToUpdate = $req->body->FK_id_pokemon;
-            if($this->pokemon_model->get($pokemoToUpdate)){
-            // if($this->pokemon_model->exists($pokemoToUpdate)){
+            if($this->pokemon_model->exists($pokemoToUpdate)){
                 $attributesToUpdate['FK_id_pokemon'] = intval($pokemoToUpdate);
             }else{
                 return $this->view->response("No existe el pokemon con id:$pokemoToUpdate. Por favor intentelo de nuevo!!", 404);
@@ -191,8 +171,7 @@ class AprendizajeApiController {
         }
         if(!empty($req->body->FK_id_movimiento)){
             $movimientoToUpdate = $req->body->FK_id_movimiento;
-            if($this->movimiento_model->get($movimientoToUpdate)){
-            // if($this->pokemon_model->exists($movimientoToUpdate)){
+            if($this->pokemon_model->exists($movimientoToUpdate)){
                 $attributesToUpdate['FK_id_movimiento'] = intval($movimientoToUpdate);
             }else{
                 return $this->view->response("No existe el movimiento con id:$movimientoToUpdate. Por favor intentelo de nuevo!!", 404);
@@ -262,7 +241,6 @@ class AprendizajeApiController {
         $invalid_sorts = 0;
          
         foreach($params as $param_name => $value){          // separa query-params de ordenamiento y de filtro
-            var_dump("param name   ",$param_name);
             if(stripos($param_name,"sort_") === 0) {                // [case-insensitive]: sort_nombre_movimiento  coincide 's' de "sort_" en posicion 0 de param_name https://www.php.net/manual/en/function.stripos.php
                 
                 if (str_contains(strtoupper($param_name), 'ID')) {
@@ -273,7 +251,6 @@ class AprendizajeApiController {
                       
                 $curr_table='';
                 foreach($resource_query_fields as $table_name =>$values){
-                    var_dump($table_name);
                     if(empty($curr_table) && isset($resource_query_fields[$table_name][$field]))
                         $curr_table = $table_name;
                 }
@@ -287,13 +264,12 @@ class AprendizajeApiController {
                 }
             }else{
                 if(!isset($resource_query_fields['pokemon'][$param_name]) && !isset($resource_query_fields['movimiento'][$param_name]) && !isset($resource_query_fields['aprendizaje'][$param_name])) {
-                  $invalid_filters++; var_dump($param_name);
+                  $invalid_filters++;
                 }else 
                     $filters[$param_name] = $value;
             }
         } // filters = [nombre=>Bulbasaur , tipo=>fuego,fecha_captura=>2024]
           // sorts = [nombre=ASC,tipo=>DESC]
-          var_dump($sorts);
         return ['filters' => $filters, 'sorts'=> $sorts, 'invalid_filters' => $invalid_filters, 'invalid_sorts' => $invalid_sorts];
 
     }

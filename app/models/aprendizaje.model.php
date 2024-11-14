@@ -34,53 +34,27 @@ class AprendizajeModel {
                 $where = array_merge($where,$WHERE_params['where']);
                 $params = array_merge($params,$WHERE_params['params']);
             }    
-            //REFACTOR LOGICA AILEN/// 
+            foreach($sorts as $column => $sort){
+                if(isset($valid_query_params[$table_name][$column])){echo"join ";$JOINs[$table_name] = true;}
+            }
         }     
         //DEFAULT SORT::           
         $SORT = " ORDER BY aprendizaje.FK_id_pokemon ASC, aprendizaje.FK_id_movimiento ASC, aprendizaje.nivel_aprendizaje ASC";    
         
-        //REFACTOR LOGICA AILEN/// 
         if (!empty($sorts) || !empty($filters)) {
             
             if(isset($JOINs['pokemon'])) {$TABLES .= ' JOIN pokemon ON aprendizaje.FK_id_pokemon = pokemon.id';}
             if(isset($JOINs['movimiento'])) {$TABLES .= ' JOIN movimiento ON aprendizaje.FK_id_movimiento = movimiento.id_movimiento';}  
-            //REFACTORLOGICA AILEN///                
+            if(!empty($sorts)){$SORT = 'ORDER BY '.implode(', ',$sorts);}              
         }
-        /// A REFACTORIZAR:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-        //$pokemonFields = ['nro_pokedex', 'nombre', 'tipo', 'fecha_captura', 'peso', 'id_entrenador'];
-        // if ($SORT_BY) {
-            // if (in_array($SORT_BY, $pokemonFields) || in_array('pokemon',$JOINs)) { 
-            //     $TABLES .= ' JOIN pokemon ON aprendizaje.FK_id_pokemon = pokemon.id';
-            //     if($SORT_BY === "id_entrenador"){
-            //         $SORT = ' ORDER BY pokemon.FK_id_entrenador';
-            //     }else $SORT = ' ORDER BY pokemon.'.$SORT_BY; 
-            //     $WHERE_params=$this->get_WHERE_params($filters,$valid_query_params['pokemon']);
-            // }
-            // if (in_array($SORT_BY, ['nombre_movimiento', 'tipo_movimiento', 'poder_movimiento', 'precision_movimiento', 'descripcion_movimiento'])) {
-            //     $TABLES .= ' JOIN movimiento ON aprendizaje.FK_id_movimiento = movimiento.id_movimiento';
-            //     $SORT = ' ORDER BY aprendizaje.FK_id_pokemon ASC, movimiento.'.$SORT_BY;
-            //     $WHERE_params=$this->get_WHERE_params($filters, ['movimiento']);
-            // }
-            // if (in_array($SORT_BY, ['id_pokemon', 'id_movimiento', 'nivel_aprendizaje'])) {
-            //     if($SORT_BY === "id_pokemon"){
-            //         $SORT = ' ORDER BY aprendizaje.FK_id_pokemon';
-            //     }else{
-            //         if($SORT_BY === "id_movimiento"){
-            //             $SORT = ' ORDER BY aprendizaje.FK_id_movimiento';
-            //         }else{
-            //             $SORT = ' ORDER BY aprendizaje.FK_id_pokemon ASC, aprendizaje.nivel_aprendizaje';
-            //         }
-            //     }
-            //     $WHERE_params=$this->get_WHERE_params($filters,['aprendizaje']);
-            // }
-        //}
+        
       
         $sql = "SELECT $SELECT_attributes FROM $TABLES "; 
         if(!empty($where)){$sql .= " WHERE ( (" . implode(') AND ( ', $where).") ) ";}
         if($SORT){$sql .=  $SORT;}
         if($LIMIT){ $sql .= "LIMIT ".$LIMIT;}
 
-        var_dump("SQLLLL------->", $sql);
+        // var_dump("SQLLLL------->", $sql);
 
         $query = $this->db->prepare($sql);
         $query->execute($params);
@@ -139,7 +113,7 @@ class AprendizajeModel {
         foreach ($fieldsMap as $table => $columns) {
             foreach ($columns as $column => $value) {
                 if(in_array($column,['id_entrenador','id_pokemon','id_movimiento']))
-                    $fieldsMap[$table][$column]['query_column'] = 'FK_'.$table . '.' . $column;
+                    $fieldsMap[$table][$column]['query_column'] = $table. '.' .'FK_'. $column;
                 else $fieldsMap[$table][$column]['query_column'] = $table . '.' . $column;  
                 $fieldsMap[$table][$column]['type'] = $this->getParamType($column); 
             }

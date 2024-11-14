@@ -44,8 +44,7 @@ class PokemonModel {
         $numericSubStrings = ["id", "nro", "nivel", "precision", "peso","poder"]; 
         $dateSubStrings = ["fecha"];
         
-        //expresiones regulares (`i` al final para que sea case-insensitive)
-        $numericPattern = "/(" . implode("|", $numericSubStrings) . ")/i";  
+        $numericPattern = "/(" . implode("|", $numericSubStrings) . ")/i";  //expresiones regulares (`i` al final para que sea case-insensitive)
         $datePattern = "/(" . implode("|", $dateSubStrings) . ")/i";      
 
         if (preg_match($numericPattern, $tableColumn)) {return "integer";}    
