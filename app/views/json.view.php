@@ -36,7 +36,7 @@
         }
 
         public function aprendizaje_alreadyExists_Error_response($pokemon, $movimiento){
-            return $this->response("[AlreadyExists_Error]: el pokemon $pokemon->nombre con id =  $pokemon->id_pokemon, ya cuenta con el movimiento $movimiento->nombre_movimiento con id = $movimiento->id_movimiento.",404);// NOT FOUND
+            $this->response("[AlreadyExists_Error]: el pokemon $pokemon->nombre con id =  $pokemon->id_pokemon, ya cuenta con el movimiento $movimiento->nombre_movimiento con id = $movimiento->id_movimiento.",404);// NOT FOUND
         }  
 
         public function aprendizaje_insert_server_Error_response($pokemon, $movimiento){

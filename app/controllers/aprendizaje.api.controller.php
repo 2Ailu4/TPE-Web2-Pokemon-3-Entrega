@@ -18,9 +18,6 @@ class AprendizajeApiController {
     }
 
     public function getAll($req, $res){
-        // if(!$res->user) {
-        //     return $this->view->response("No autorizado", 401);
-        // }
         $filter_type = null;
         $filter_name = null;
         $sortBy = null;
@@ -44,14 +41,14 @@ class AprendizajeApiController {
             $movement = $this->movimiento_model->get($movement_learned->FK_id_movimiento);
             $movement->nivel_aprendizaje = $movement_learned->nivel_aprendizaje;
             if(!$movement){
-                $this->view->response("Inconsistencias en DB entre tablas 'aprende' & 'movimiento' (No existe el movimiento con id=$movement_learned->FK_id_movimiento) ",500);
+                $this->view->response("Inconsistencias en DB entre tablas 'aprende' & 'movimiento' (No existe el movimiento con id:$movement_learned->FK_id_movimiento) ",500);
                 return;
             }
 
             if(!isset($result[$movement_learned->FK_id_pokemon])){     // si aun no cargue el pokemon 
                 $pokemon = $this->pokemon_model->get($movement_learned->FK_id_pokemon); //obtengo el POKEMON  de la DB
                 if(!$pokemon){
-                    $this->view->response("Inconsistencias en DB entre tablas 'aprende' & 'pokemon' (No existe el pokemon con id=$movement_learned->FK_id_pokemon)",500);
+                    $this->view->response("Inconsistencias en DB entre tablas 'aprende' & 'pokemon' (No existe el pokemon con id:$movement_learned->FK_id_pokemon)",500);
                     return;
                 }
                 
@@ -66,18 +63,35 @@ class AprendizajeApiController {
         $this->view->response($result);
     }
 
-    // ('aprendizaje'                  ,'POST'      ,  'AprendizajeApiController',   'insert'); 
-
     public function insert($req, $res){
-    
+    ///---------------------LLEVAR A CONTROLADRO GENERICO--------------------------------------------
+        // $updateFields = $req->body;
+        // $valid_fields=$this->model->getValid_TableFields();
+
+        // unset($valid_fields['id']);
+        // foreach($valid_fields as $field_name => $field_type){
+        //     if(!isset($updateFields->$field_name) || empty($updateFields->$field_name)){
+        //         return $this->view->response("Falta completar el campo [$field_name] ", 400);
+        //     }
+        //     if($field_type !== gettype($updateFields->$field_name)){
+        //         return $this->view->response("'$field_name' debe ser de tipo [$field_type]", 400);
+        //     }
+        // }
+    ///--------------------------------------------------------------------------------------------
+
+        if(!$res->user) {
+            return $this->view->response("No autorizado", 401);
+        }
+
+                //  ***************REEMPLAZAR POR LO DE ARRIBA*******************
         $id_pokemon = isset($req->query->id_pokemon) ? $req->query->id_pokemon : null;
         $id_movimiento = isset($req->query->id_movimiento) ? $req->query->id_movimiento : null;
         $nivel_aprendizaje = isset($req->query->nivel_aprendizaje) ? $req->query->nivel_aprendizaje : null;
-         
+        // var_dump("pokemon = $id_pokemon","movimiento = $id_movimiento");
         if(empty($id_pokemon)){       return $this->view->requirementError_response('id_pokemon');}
         if(empty($id_movimiento)){    return $this->view->requirementError_response('id_movimiento'); }
         if(empty($nivel_aprendizaje)){return $this->view->requirementError_response('campo nivel_aprendizaje');}
-
+        
         if(!is_numeric($id_pokemon)){       return $this->view->typeError_response('id_pokemon','numerico');}
         if(!is_numeric($id_movimiento)){    return $this->view->typeError_response('id_movimiento','numerico');}
         if(!is_numeric($nivel_aprendizaje)){return $this->view->typeError_response('nivel_aprendizaje','numerico');}
@@ -103,9 +117,13 @@ class AprendizajeApiController {
 
         $this->view->response($aprendizaje,201);
     }
- 
+
     public function update($req, $res){
-        if(!intval($req->params->id_pok) || !intval($req->params->id_mov)){
+        if(!$res->user) {
+            return $this->view->response("No autorizado", 401);
+        }
+
+        if(!is_numeric($req->params->id_pok) || !is_numeric($req->params->id_mov)){
             return $this->view->response("El id no puede ser un string", 400);
         }
 
@@ -117,17 +135,18 @@ class AprendizajeApiController {
             $pokemon = $this->pokemon_model->get($id_pokemon);
             $movimiento = $this->movimiento_model->get($id_movimiento);
             if(!$pokemon && !$movimiento){
-                return $this->view->response("No existe el pokemon con id = $id_pokemon ni el movimiento con id = $id_movimiento", 404);
+                return $this->view->response("No existe el pokemon con id:$id_pokemon ni el movimiento con id:$id_movimiento", 404);
             }
             if(!$pokemon){
-                return $this->view->response("No fue posible encontrar el pokemon con id=$id_pokemon", 404);
+                return $this->view->response("No fue posible encontrar el pokemon con id:$id_pokemon", 404);
             }
             if(!$movimiento){
-                return $this->view->response("No fue posible encontrar el movimiento con id=$id_movimiento", 404);
+                return $this->view->response("No fue posible encontrar el movimiento con id:$id_movimiento", 404);
             }
-            return $this->view->response("No existe la relacion con el pokemon=$id_pokemon y el movimiento=$id_movimiento", 404);
+            return $this->view->response("No existe la relacion con el pokemon:$id_pokemon y el movimiento:$id_movimiento", 404);
         }
 
+// **********************GENERAZLIZARRRRRRRRRRRRR**************************************************************
         $attributesToUpdate = [];
         if(!empty($req->body->FK_id_pokemon)){
             $pokemoToUpdate = $req->body->FK_id_pokemon;
@@ -135,7 +154,7 @@ class AprendizajeApiController {
             // if($this->pokemon_model->exists($pokemoToUpdate)){
                 $attributesToUpdate['FK_id_pokemon'] = intval($pokemoToUpdate);
             }else{
-                return $this->view->response("No existe el pokemon con id= $pokemoToUpdate el cual reemplace al actual", 404);
+                return $this->view->response("No existe el pokemon con id:$pokemoToUpdate. Por favor intentelo de nuevo!!", 404);
             }
         }
         if(!empty($req->body->FK_id_movimiento)){
@@ -144,7 +163,7 @@ class AprendizajeApiController {
             // if($this->pokemon_model->exists($movimientoToUpdate)){
                 $attributesToUpdate['FK_id_movimiento'] = intval($movimientoToUpdate);
             }else{
-                return $this->view->response("No existe el movimiento con id= $movimientoToUpdate el cual reemplace al actual", 404);
+                return $this->view->response("No existe el movimiento con id:$movimientoToUpdate. Por favor intentelo de nuevo!!", 404);
             }
         }
         if(!empty($req->body->nivel_aprendizaje)){
@@ -155,6 +174,7 @@ class AprendizajeApiController {
                 return $this->view->response("ERROR: un pokemon no puedo aprender movimientos por encima del nivel 100", 404);
             }
         }
+// **********************************************************************************************************************
 
         $update = null;
         if(!empty($attributesToUpdate)){
@@ -165,7 +185,7 @@ class AprendizajeApiController {
             $aprendizajeActualizado = $this->aprendizaje_model->get($id_pokemon, $id_movimiento);
             $this->view->response($aprendizajeActualizado);
         }else{
-            $this->view->response("No fue posible actualizar la relacion aprendizaje");
+            $this->view->response("No fue posible actualizar la relacion Aprendizaje para el pokemon:$id_pokemon y el movimiento:$id_movimiento",404);
         }
     }
 

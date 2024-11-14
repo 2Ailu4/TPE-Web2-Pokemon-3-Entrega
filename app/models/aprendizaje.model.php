@@ -26,7 +26,7 @@ class AprendizajeModel {
                                 //WHERE pokemon.nombre like $filter_pokemon_name
         $SORT = " ORDER BY aprendizaje.FK_id_pokemon";    //orden por defecto
         
-        if ($SORT_BY) {
+        if ($SORT_BY) { 
             if (in_array($SORT_BY, ['nro_pokedex', 'nombre', 'tipo', 'fecha_captura', 'peso', 'id_entrenador'])) {
                 $TABLES .= ' JOIN pokemon ON aprendizaje.FK_id_pokemon = pokemon.id';
                 if($SORT_BY === "id_entrenador"){
@@ -67,8 +67,8 @@ class AprendizajeModel {
     }
 
     public function get($id_pokemon , $id_movimiento){
-        $query = $this->db->prepare('SELECT * FROM aprendizaje WHERE FK_id_pokemon = ? ,FK_id_movimiento=?');
-        $query->execute([$id_pokemon,$id_movimiento]);
+        $query = $this->db->prepare('SELECT * FROM aprendizaje WHERE FK_id_pokemon = :id_p AND FK_id_movimiento = :id_m');
+        $query->execute([':id_p'=> $id_pokemon,':id_m'=>$id_movimiento]);
 
         return $query->fetch(PDO::FETCH_OBJ);
     }
@@ -89,15 +89,12 @@ class AprendizajeModel {
     public function update($id_pokemon, $id_movimiento, $ASSOC_UPD_params){
         $whereParams="FK_id_pokemon = :id_pok and FK_id_movimiento = :id_mov";
         $fields = $this->generate_update_params($ASSOC_UPD_params); 
-        // var_dump("FIELDDDSSS", $fields);
 
         $ASSOC_Array = $fields['ASSOC_ARRAY'];
         $ASSOC_Array[':id_pok'] = intval($id_pokemon);
         $ASSOC_Array[':id_mov'] = intval($id_movimiento);
-        var_dump("WHEREEEE", $whereParams);
         
         $updateParams = $fields['SET_params'];
-        var_dump("UPDATEEEEE", $updateParams);
 
         $query = $this->db->prepare("UPDATE aprendizaje SET $updateParams WHERE $whereParams");
         $query->execute($ASSOC_Array);

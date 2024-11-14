@@ -1,5 +1,7 @@
 <?php
     const MYSQL_USER = 'root';
     const MYSQL_PASS = '';
-    const MYSQL_DB = 'db_tpe_3_pruebas';
+    const MYSQL_DB = 'tpe-web2-hiese-peralta';
     const MYSQL_HOST = 'localhost';
+
+    const JWT_KEY = 'hiese19peralta'; // FIRMA / SECRETO
