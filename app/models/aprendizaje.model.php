@@ -12,13 +12,39 @@ class AprendizajeModel {
 
     
     public function exists($id_pokemon , $id_movimiento){
-        $query = $this->db->prepare('SELECT 1 FROM aprendizaje WHERE FK_id_pokemon = ? AND FK_id_movimiento=?');
-        $query->execute([$id_pokemon,$id_movimiento]);
+        $query = $this->db->prepare('SELECT 1 FROM aprendizaje WHERE FK_id_pokemon = :id_pok AND FK_id_movimiento= :id_mov');
+        $query->execute([':id_pok' => $id_pokemon, ':id_mov' => $id_movimiento]);
 
         return $query->fetch(PDO::FETCH_OBJ);
     }
 
-    public function getAll( $filters=[], $sorts =[],$page = null, $LIMIT = null ) {
+     
+    public function getTempTable_PaginatedPokemons($JOIN_movimiento =false, $where, $sorts =[],$page = 1, $limit = null){
+        $TABLES = 'pokemon';
+        if($JOIN_movimiento) {$TABLES .= ' JOIN aprendizaje ON (pokemon.id = aprendizaje.FK_id_pokemon)
+                                           JOIN movimiento ON (movimiento.id_movimiento = aprendizaje.FK_id_movimiento)';}  
+        
+        $tempPokemonsTable ="WITH pokemon_filtrados AS (
+                    SELECT id
+                    FROM $TABLES";
+
+        $SORT = " ORDER BY pokemon.id";
+        
+        if(!empty($where)){$tempPokemonsTable .= " WHERE ( (" . implode(') AND ( ', $where).") ) ";}
+        
+        if(!empty($sorts)){$SORT = ' ORDER BY '.implode(', ',$sorts);} 
+        if($SORT){$tempPokemonsTable .=  $SORT;}
+
+        if(isset($limit)){                                
+            $offset = (int)(($page*$limit) - $limit);  
+            $tempPokemonsTable .= " LIMIT " . (int)$limit 
+            . " OFFSET ". (int)$offset . ")";    
+        }
+        return $tempPokemonsTable;   
+    }
+
+
+    public  function getAll( $filters=[], $sorts =[],$page = null, $limit = null, $paginate_by_pokemons = false) {
         $TABLES = " aprendizaje";
         $SELECT_attributes = "aprendizaje.*";
 
@@ -35,30 +61,58 @@ class AprendizajeModel {
                 $params = array_merge($params,$WHERE_params['params']);
             }    
             foreach($sorts as $column => $sort){
-                if(isset($valid_query_params[$table_name][$column])){echo"join ";$JOINs[$table_name] = true;}
+                if(isset($valid_query_params[$table_name][$column])){$JOINs[$table_name] = true;}
             }
         }     
         //DEFAULT SORT::           
         $SORT = " ORDER BY aprendizaje.FK_id_pokemon ASC, aprendizaje.FK_id_movimiento ASC, aprendizaje.nivel_aprendizaje ASC";    
         
-        if (!empty($sorts) || !empty($filters)) {
+        if (!empty($sorts) || !empty($filters) || !empty($paginate_by_pokemons)) {
             
             if(isset($JOINs['pokemon'])) {$TABLES .= ' JOIN pokemon ON aprendizaje.FK_id_pokemon = pokemon.id';}
             if(isset($JOINs['movimiento'])) {$TABLES .= ' JOIN movimiento ON aprendizaje.FK_id_movimiento = movimiento.id_movimiento';}  
-            if(!empty($sorts)){$SORT = 'ORDER BY '.implode(', ',$sorts);}              
+            if(isset($limit) && $paginate_by_pokemons) {$TABLES .= ' JOIN pokemon_filtrados ON aprendizaje.FK_id_pokemon = pokemon_filtrados.id';}
+            if(!empty($sorts)){
+                if( isset($sorts['id_entrenador'])){
+                    $aux = explode(".",$sorts['id_entrenador']);
+                    $real_table_name=implode(".FK_",$aux);
+                    $sorts['id_entrenador']=$real_table_name;
+                }
+                $SORT = ' ORDER BY '.implode(', ',$sorts);
+            }            
         }
         
-      
+        
         $sql = "SELECT $SELECT_attributes FROM $TABLES "; 
+        
+        if(isset($limit) && $paginate_by_pokemons){
+            if(isset($JOINs['movimiento'])){
+                $temp_Table = $this->getTempTable_PaginatedPokemons(true, $where, $sorts, $page, $limit);
+            }else{
+                $temp_Table = $this->getTempTable_PaginatedPokemons(false, $where, $sorts, $page, $limit);
+            }
+            $sql = $temp_Table . "
+                  " . $sql;
+        }
+
         if(!empty($where)){$sql .= " WHERE ( (" . implode(') AND ( ', $where).") ) ";}
         if($SORT){$sql .=  $SORT;}
-        if($LIMIT){ $sql .= "LIMIT ".$LIMIT;}
 
-        // var_dump("SQLLLL------->", $sql);
+        if(isset($limit)){ // si seteo limite
+            if(!$paginate_by_pokemons){ // solo en caso de que no se quiera paginar por pokemon
+                $offset = ($page*$limit) - $limit;  
+                $sql .= " LIMIT " . $limit . " OFFSET ". $offset; 
+            }
+        }
+
+        var_dump("SWL---------<", $sql);
+        var_dump("EXECUTEEE", $params);
 
         $query = $this->db->prepare($sql);
         $query->execute($params);
+
         return $query->fetchAll(PDO::FETCH_OBJ);
+        
     } 
 
     public function get($id_pokemon , $id_movimiento){
@@ -81,13 +135,13 @@ class AprendizajeModel {
         
     }
    
-    public function update($id_pokemon, $id_movimiento, $ASSOC_UPD_params){
-        $whereParams="FK_id_pokemon = :id_pok and FK_id_movimiento = :id_mov";
+    public function update($old_id_pokemon, $old_id_movimiento, $ASSOC_UPD_params){
+        $whereParams="FK_id_pokemon = :OLD_id_pok and FK_id_movimiento = :OLD_id_mov";
         $fields = $this->generate_update_params($ASSOC_UPD_params); 
 
         $ASSOC_Array = $fields['ASSOC_ARRAY'];
-        $ASSOC_Array[':id_pok'] = intval($id_pokemon);
-        $ASSOC_Array[':id_mov'] = intval($id_movimiento);
+        $ASSOC_Array[':OLD_id_pok'] = intval($old_id_pokemon);
+        $ASSOC_Array[':OLD_id_mov'] = intval($old_id_movimiento);
         
         $updateParams = $fields['SET_params'];
 
@@ -177,9 +231,15 @@ class AprendizajeModel {
                 $sql_OP=' = ';
                 $key = ":$filter_column";
                 if($values['type']==="string") {$sql_OP = ' LIKE ';}
-                if($values['type']==="date") {$sql_OP = ' = ';} // ver la fecha como se consulta
-                $where["$filter_column"] = $values['query_column'] . $sql_OP . $key;   
-                $params[$key] = $filters[$filter_column];
+                if($values['type']==="date") {
+                    //"DATE(fecha_registro) = STR_TO_DATE('11/16/2024', '%m/%d/%Y');"
+                    $where["$filter_column"] = "DATE(".$values['query_column'].")" . $sql_OP . $key; 
+                    $params[$key] = " STR_TO_DATE(".$filters[$filter_column].", '%m/%d/%Y') ";
+                } // ver la fecha como se consulta
+                else {
+                    $where[$filter_column] = $values['query_column'] . $sql_OP . $key;   
+                    $params[$key] = $filters[$filter_column];
+                }
             }
         }
         return ['where'=>$where,'params'=>$params];
