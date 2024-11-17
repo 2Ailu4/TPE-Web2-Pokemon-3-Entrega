@@ -34,6 +34,10 @@ class PokemonApiController{
 
 
     public function update($req, $res){
+        if(!$res->user) {
+            return $this->view->response("No autorizado", 401);
+        }
+        
         $id_Pokemon = $req->params->id_pok;
         $pokemon = $this->model->get($id_Pokemon);
         if(!$pokemon){
@@ -194,7 +198,10 @@ class PokemonApiController{
 
 
     public function insert($req, $res){
-    ///---------------------LLEVAR A CONTROLADRO GENERICO--------------------------------------------
+        if(!$res->user) {
+            return $this->view->response("No autorizado", 401);
+        }
+
         $updateFields = $req->body;
         $valid_fields=$this->model->getValid_TableFields();
 
@@ -209,7 +216,6 @@ class PokemonApiController{
                 }
             }
         }
-    ///--------------------------------------------------------------------------------------------
 
         $id_entrenador = null; 
         $id_entr = $updateFields->FK_id_entrenador;

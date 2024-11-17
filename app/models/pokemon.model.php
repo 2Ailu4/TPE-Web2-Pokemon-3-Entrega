@@ -23,8 +23,7 @@ class PokemonModel {
     }
     
     public function get($id){
-        $query = $this->db->prepare('SELECT nro_pokedex, nombre, tipo, fecha_captura, peso, FK_id_entrenador, imagen_pokemon 
-                                     FROM pokemon WHERE id=?');
+        $query = $this->db->prepare('SELECT * FROM pokemon WHERE id=?');
         $query->execute([$id]);
         return $query->fetch(PDO::FETCH_OBJ);
     }
@@ -38,7 +37,6 @@ class PokemonModel {
         return $fieldsMap;
     }
 
-/// mover a :  class Controlador::  --------------------------------------------------------------------  
     private function getParamType($tableColumn){
         // Subcadenas para filtrar
         $numericSubStrings = ["id", "nro", "nivel", "precision", "peso","poder"]; 
@@ -51,7 +49,6 @@ class PokemonModel {
         if (preg_match($datePattern, $tableColumn)) {return "date";}
         return "string"; 
     }
-// ---------------------------------------------------------------------------------------------------------
 
     public function countNroPokedex($nro_Pokedex){
         $query = $this->db->prepare('SELECT COUNT(*) FROM pokemon WHERE nro_pokedex= ?');

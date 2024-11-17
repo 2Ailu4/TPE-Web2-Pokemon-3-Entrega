@@ -39,9 +39,10 @@
                 'user-email' => $user->email,
                 'role' => 'admin',
                 'iat' => time(),
-                'exp' => time() + 600,
+                'exp' => time() + 3600,
                 'Saludo' => 'Hola',
             ));
+
             return $this->view->response($token);
         }
     }

@@ -15,7 +15,7 @@ class MovimientoApiController{
     public function getAll($req, $res){
         $movimientos = $this->model->getAll();
         if(!$movimientos){
-            return $this->view->response("No existen filas en la tabla Movimiento", 404);
+            return $this->view->no_Coincidences();
         }
         return $this->view->response($movimientos);
     }
@@ -25,17 +25,21 @@ class MovimientoApiController{
         $id_mov = $req->params->id_mov;
         $movimiento = $this->model->get($id_mov);
         if(!$movimiento){
-            return $this->view->response("No existe el movimiento con id:$id_mov", 404);
+            return $this->view->existence_Error_response("Movimiento", $id_mov);
         }
         return $this->view->response($movimiento);
     }
 
 
     public function update($req, $res){
+        if(!$res->user) {
+            return $this->view->unauthorized();
+        }
+
         $id_mov = $req->params->id_mov;
         $movimiento = $this->model->get($id_mov);
         if(!$movimiento){
-            return $this->view->response("No existe el movimiento con id:$id_mov", 404);
+            return $this->view->existence_Error_response("Movimiento", $id_mov);
         }
         
         $attributesToUpdate = [];
@@ -45,10 +49,10 @@ class MovimientoApiController{
 
         foreach ($updateFields as $field => $updateField){
             if (!isset($fields_to_verify[$field])){
-                return $this->view->response("'$field' es un campo invalido",400);
+                return $this->view->invalid_Field($field);
             }
             if($fields_to_verify[$field] !== gettype($updateField)){
-                return $this->view->response("'$field' debe ser de tipo $fields_to_verify[$field]", 400);
+                return $this->view->typeError_response($field,$fields_to_verify[$field]);
             }
             
             // Guardo en $attributesToUpdate solo los campos que se modificaron
@@ -68,44 +72,45 @@ class MovimientoApiController{
             return $this->view->response($movimientoActualizado);
         }else{
             if(count($attributesToUpdate)===0) 
-                return $this->view->response("El movimiento con id:$id_mov ya se encuentra actualizado", 200);
-            return $this->view->response("No fue posible actualizar el movimiento con id:$id_mov", 404);
+                return $this->view->allreadyUpdate("Movimiento", $id_mov);
+            return $this->view->updateError("Movimiento", $id_mov);
         }
-
     }
 
 
     public function insert($req, $res){
-    ///---------------------LLEVAR A CONTROLADRO GENERICO--------------------------------------------
-        $updateFields = $req->body;
+        if(!$res->user) {
+            return $this->view->unauthorized();
+        }
+
+        $insertFields = $req->body;
         $valid_fields=$this->model->getValid_TableFields();
 
         unset($valid_fields['id_movimiento']);
         foreach($valid_fields as $field_name => $field_type){
-            if(!isset($updateFields->$field_name) || empty($updateFields->$field_name)){
-                return $this->view->response("Falta completar el campo [$field_name] ", 400);
+            if(!isset($insertFields->$field_name) || empty($insertFields->$field_name)){
+                return $this->view->emptyField($field_name);
             }
-            if($field_type !== gettype($updateFields->$field_name)){
-                return $this->view->response("'$field_name' debe ser de tipo [$field_type]", 400);
+            if($field_type !== gettype($insertFields->$field_name)){
+                return $this->view->typeError_response($field_name, $field_type);
             }
         }
-    ///--------------------------------------------------------------------------------------------
 
-        $nombre = $updateFields->nombre_movimiento;
-        $tipo = $updateFields->tipo_movimiento;
-        $poder = $updateFields->poder_movimiento;
-        $precision = $updateFields->precision_movimiento;
-        $descripcion = $updateFields->descripcion_movimiento;
+        $nombre = $insertFields->nombre_movimiento;
+        $tipo = $insertFields->tipo_movimiento;
+        $poder = $insertFields->poder_movimiento;
+        $precision = $insertFields->precision_movimiento;
+        $descripcion = $insertFields->descripcion_movimiento;
 
         $id_new_movimiento = $this->model->insert($nombre, $tipo, $poder, $precision, $descripcion);
 
         if(!$id_new_movimiento){
-            return $this->view->response("No fue posible insertar", 404);
+            return $this->view->insertError("Movimiento", $id_new_movimiento);
         }
         
         $new_movimiento = $this->model->get($id_new_movimiento);
         if(!$new_movimiento){
-            return $this->view->response("No fue posible encontrar el nuevo movimiento", 404);
+            return $this->view->row_Not_Found("Movimiento");
         }
 
         return $this->view->response($new_movimiento);
