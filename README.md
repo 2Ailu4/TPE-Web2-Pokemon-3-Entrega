@@ -166,7 +166,11 @@ Ejemplo: **api/aprendizaje?id_movimiento=2** <br/>
 	}
 ```
 **`Ordenamiento`**
- - Si se especifica la query reservada "sort_" antes del nombre del campo por el que se desea odenar se obtendran los elementos de la relacion Aprendizaje ordenados por ese criterio, tener en cuenta que los movimientos estan contenidos en el pokemon (arreglo de movimientos).  
+ - Si se especifica la query reservada "sort_" antes del nombre del campo por el que se desea odenar se obtendran los elementos de la relacion Aprendizaje ordenados por ese criterio, tener en cuenta que los movimientos estan contenidos en el pokemon (arreglo de movimientos). 
+
+## Para ordenar definir la ruta partiendo de: **api/aprendizaje** y agregarle el endpoint que desee  
+Se permite ordenar por cualquier campo de las tres tablas, partiendo desde 'Aprendizaje'. <br/>
+Por ejemplo: api/aprendizaje?sort_fecha_captura <br/>
 
 # <ins> Sorts: Pokemon </ins> 
 | **Field**     |        **Type**	     | **Example** | 
@@ -176,7 +180,7 @@ Ejemplo: **api/aprendizaje?id_movimiento=2** <br/>
 |      `tipo`     |        `Varchar(20)`      | `?sort_tipo=ASC/DESC` |
 | `fecha_captura` |        `Date`         	 | `?sort_fecha_captura=ASC/DESC`|
 |     `peso`      |        `Int(11) > 0`       | `?sort_peso=ASC/DESC`|
-| `id_entrenador` |        `Int(12) > 0`       | `?sort_entrenador=ASC/DESC`|
+| `id_entrenador` |        `Int(12) > 0`       | `?sort_id_entrenador=ASC/DESC`|
 
 # <ins> Sorts: Aprendizaje</ins> 
 | **Field**       |        **Type**	     | **Example** |
@@ -191,7 +195,7 @@ Ejemplo: **api/aprendizaje?id_movimiento=2** <br/>
 |`nombre_movimiento` 		|        `Varchar(50)`		  	 | `?sort_nombre_movimiento=ASC/DESC`|
 |`tipo_movimiento`    	|        `Varchar(20)`		   	 | `?sort_tipo_movimiento=ASC/DESC`|
 |`poder_movimiento`     	|        `Int(11) > 0`         	 | `?sort_poder_movimiento=ASC/DESC`|
-|`presicion_movimiento` 	|        `Int(11) > 0`       | `?sort_presicion_movimiento=ASC/DESC`|
+|`presicion_movimiento` 	|        `Int(11) > 0`       | `?sort_precision_movimiento=ASC/DESC`|
 |`descripcion_movimiento` |        `Text`		     | `?sort_descripcion_movimiento=ASC/DESC`|
 
     Por ejemplo: si se desea ordenar por nombre de movimiento, el endpoint nos quedara: api/aprendizaje?sort_nombre_movimiento. Y el resultado de esta consulta nos devolvera los pokemons ordenados teniendo en cuenta el que cuente con el nombre del movimiento "mas chico" se colocara primero e internamente a cada pokemon ordenara los movimientos por el criterio previamnete especificado. 
@@ -209,14 +213,17 @@ Ejemplo: **api/aprendizaje?id_movimiento=2** <br/>
 - Al filtrar por Pokemon, tener sumo cuidado con los campos **[nro_pokedex, nombre, tipo]**, ya que estan estrechamente relacionados, todos los nro_pokedex=1 tendran por nombre=Bulbasaur, con lo cual si se quisiera filtrar por [nro_pokedex, nombre] = [1, Charmander] resultara en un conjunto vacio. Lo mismo ocurre con el campo **tipo** para cualquiera de los dos anteriores. Por ejemplo: 
 - Al filtrar por [nombre,tipo] = [Charmander,Veneno] --> **resultado: conjunto vacio**, esto ocurre ya que los campos de "Charmander" estan definidos como: [nro_pokedex, nombre, tipo] = [7,Charmander,Fuego]
 
+## Para filtrar definir la ruta partiendo de: **api/aprendizaje** y agregarle el endpoint que desee  
+Se permite filtrar por cualquiera campo de las tres tablas. <br/>
+Por ejemplo: api/aprendizaje?nivel_aprendizaje=15 <br/>
+
 # <ins> Filters: Pokemon </ins> 
 | **Field**     |        **Type**	     | **Example** | **Filter Type** |
 |---------------|------------------------|-------------|------------------|
-|       `id`      |        `Int(11) > 0`     | `?id=4`|   `KEY`|
 |   `nro_pokedex` |        `Int(1) > 0`  	 | `?nro_pokedex=25`| `Secundario`|
 |     `nombre`    |        `Int(30) > 0`   	 | `?nombre=Pikachu`| `Secundario`|
 |      `tipo`     |        `Varchar(20)`      | `?tipo=Electrico`|`Opcional`|
-| `fecha_captura` |        `Date`         	 | `?fecha_captura=2020-03-04 16:26:43`|`Opcional`|
+| `fecha_captura` |        `Date`         	 | `?fecha_captura=17/11/2024`|`Opcional`|
 |     `peso`      |        `Int(11) > 0`       | `?peso=60`| `Opcional`|
 | `id_entrenador` |        `Int(12) > 0`       | `?id_entrenador=4`| `Opcional`|
 
@@ -230,11 +237,10 @@ Ejemplo: **api/aprendizaje?id_movimiento=2** <br/>
 # <ins> Filters: Movimiento </ins> 
 | **Field**     		|        **Type**	     | **Example** | **Filter Type** |
 |-----------------------|------------------------|-------------|------------------|
-|`id_movimiento`    	  	|        `Int(11) > 0`     	 | `?id_movimiento=1`|   `KEY`  |
 |`nombre_movimiento` 		|        `Varchar(50)`		  	 | `?nombre_movimiento=Impactrueno`| `Secundario`   |
 |`tipo_movimiento`    	|        `Varchar(20)`		   	 | `?tipo_movimiento=Electrico`| `Opcional` |
 |`poder_movimiento`     	|        `Int(11) > 0`         	 | `?poder_movimiento=40`| `Opcional` |  
-|`presicion_movimiento` 	|        `Int(11) > 0`       | `?presicion_movimiento=90`|`Opcional`  |
+|`presicion_movimiento` 	|        `Int(11) > 0`       | `?precision_movimiento=90`|`Opcional`  |
 |`descripcion_movimiento` |        `Text`		     | `?descripcion_movimiento=Un pequeño rayo que golpea al oponente.`|`Opcional` |
 
 
