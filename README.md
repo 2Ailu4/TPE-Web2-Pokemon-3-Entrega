@@ -89,10 +89,10 @@ Para realizar operaciones de actualización (`PATCH`) e inserción (`PUT`) en la
 
 ## **Tabla Aprendizaje**
 ## GET ALL: Obtener todos los registros:
-**`GET /api/aprendizaje`**
+**`GET /api/aprendizaje`** <br/>
 DEFAULT:
 - Si no se declara ninguna restriccion se listaran todos los pokemons cada uno con su informacion y un arreglo delos movimientos que aprendio o aprendera mas adelante y en nivel en que esto sucede.
-		Formato:
+**Formato:** <br/>
 ```json
 [
   {
@@ -106,17 +106,16 @@ DEFAULT:
 		"FK_id_entrenador": 1,
 		"imagen_pokemon": "images/pokemons/Bulbasaur.jpg",
 		"movimientos": [
-						{
-							"id_movimiento": 2,
-							"nombre_movimiento": "Llamarada",
-							"tipo_movimiento": "Fuego",
-							"poder_movimiento": 110,
-							"precision_movimiento": 85,
-							"descripcion_movimiento": "Un poderoso ataque de fuego con posibilidad de quemar al oponente.",
-							"nivel_aprendizaje": 10
-						},
-						...
-					]
+			{
+				"id_movimiento": 2,
+				"nombre_movimiento": "Llamarada",
+				"tipo_movimiento": "Fuego",
+				"poder_movimiento": 110,
+				"precision_movimiento": 85,
+				"descripcion_movimiento": "Un poderoso ataque de fuego con posibilidad de quemar al oponente.",
+				"nivel_aprendizaje": 10
+			}
+		]
 	},
 	{
 		"id": 2,
@@ -136,35 +135,34 @@ DEFAULT:
 				"precision_movimiento": 100,
 				"descripcion_movimiento": "Un ataque de rayo que puede paralizar al objetivo.",
 				"nivel_aprendizaje": 20
-			},
-			...
+			}
 		]
-	},
-	...
+	}
   }
 ]
 ```
 - Si se consulta por id_movimiento (siempre y cuando no se filtre tambien por id_pokemon) se obtendra la siguiente estructura :
-	[Estructura de Movimientos]:	api/aprendizaje?id_movimiento=2
-		**Response:**
+[Estructura de Movimientos]:	<br/>
+Ejemplo: **api/aprendizaje?id_movimiento=2** <br/>
+**Response:** <br/>
 ```json 		
-				{
-					"id_movimiento": 2,
-					"nombre_movimiento": "Llamarada",
-					"tipo_movimiento": "Fuego",
-					"poder_movimiento": 110,
-					"precision_movimiento": 85,
-					"descripcion_movimiento": "Un poderoso ataque de fuego con posibilidad de quemar al oponente",
-					"nivel_aprendizaje": 10
-					"pokemons" : [
-						Pokemon1,
-						Pokemon2,
-						...,
-						Pokemon11,
-						...,
-						Pokemon25
-					]
-				}
+	{
+		"id_movimiento": 2,
+		"nombre_movimiento": "Llamarada",
+		"tipo_movimiento": "Fuego",
+		"poder_movimiento": 110,
+		"precision_movimiento": 85,
+		"descripcion_movimiento": "Un poderoso ataque de fuego con posibilidad de quemar al oponente",
+		"nivel_aprendizaje": 10
+		"pokemons : "[
+			"Pokemon1",
+			"Pokemon2",
+			"...",
+			"Pokemon11",
+			"...",
+			"Pokemon25"
+		]
+	}
 ```
 **`Ordenamiento`**
  - Si se especifica la query reservada "sort_" antes del nombre del campo por el que se desea odenar se obtendran los elementos de la relacion Aprendizaje ordenados por ese criterio, tener en cuenta que los movimientos estan contenidos en el pokemon (arreglo de movimientos).  
@@ -240,7 +238,7 @@ DEFAULT:
 
 ### `Limite`
 - Si se especifica la query param: ?limit nos permitira obtener un listado limitado de pokemons. 
-- Es posible especificar la cantidad de elementos que se desean obtener en la consulta. Si se declara el filtro **?limit** y no se le asigna un valor, por default retorna los primeros 10 elementos de la consulta, en cambio si se le asigna un valor, obtendra los primeros **i** elementos del resultado de la busqueda.  
+- Es posible especificar la cantidad de elementos que se desean obtener en la consulta. Si se declara el filtro **?limit** y no se le asigna un valor, por default retorna los primeros 10 elementos de la consulta, en cambio si se le asigna un valor, obtendra los primeros **i** elementos del resultado de la busqueda.  <br/>
     Endpoint: 	
         * api/aprendizaje?limit		(limit=10 default)
         * api/aprendizaje?limit=**i**
@@ -263,27 +261,27 @@ DEFAULT:
 
 [Notas]: Si no se declara el orden de los elementos, por defecto la informacion llegara en **orden acendente** por **[id_pokemon,id_movimiento,nivel_aprendizaje]**. 
 
-Ejemplos: 
+Ejemplos: <br/>
     Si desea paginar debera ir modificando el paramero ?page en cada peticion:
-    Para mostrar los primeros 'n' elementos:(page=1), para mostrar los segundos 'n+limit' elementos: (page=2),..,(page_m).
+    Para mostrar los primeros 'n' elementos:(page=1), para mostrar los segundos 'n+limit' elementos: (page=2),..,(page_m). <br/>
     
     El limite nos define la cantidad de filas/pokemons que se listaran, si toma el valor limit=5, como por defecto siempre la página inicia en 1 se mostraran los primeros 5 Pokémons junto a toda su información, si el limit=5 y page=2 se listaran los siguientes 5 pokemons, es decir los pokemons que se encuentran entre (pokemon[6] ,pokemon[10]) respecto de la consulta que se especifico.
 
 
-## GET por id:
-**`api/aprendizaje/:id_pok/:id_mov`**
-Ejemplos: [validos]:
-* api/aprendizaje/4/1    
+## GET por id: <br/>
+**`api/aprendizaje/:id_pok/:id_mov`** <br/>
+Ejemplos: [validos]: <br/>
+* api/aprendizaje/4/1     
 * api/aprendizaje/1/5   [Existence_Warning]
 
 
-## PATCH:
-**`api/aprendizaje/:id_pok/:id_mov`**	
-(Se pueden modificar 1 o todos los campos(leer advertencia)) 
-Ejemplo: [valido]:
-* api/aprendizaje/1/1   
+## PATCH: <br/>
+**`api/aprendizaje/:id_pok/:id_mov`**	 <br/>
+(Se pueden modificar 1 o todos los campos(leer advertencia))  <br/>
+Ejemplo: [valido]: <br/>
+* api/aprendizaje/1/1 
 ```json
-    body:{		
+    "body:"{		
         "FK_id_pokemon":2,
         "FK_id_movimiento":10,
         "nivel_aprendizaje":10		 
@@ -298,21 +296,21 @@ Ejemplo: [valido]:
 
 
 ## POST: 
-**`api/aprendizaje`**
-(Para insertar se deben ingresar todos los campos)
-Ejemplo: [valido]:
-* api/aprendizaje
+**`api/aprendizaje`** <br/>
+(Para insertar se deben ingresar todos los campos)<br/>
+Ejemplo: [valido]:<br/>
+**api/aprendizaje**
 ```json
-    body:{
+    "body:"{
         "id_pokemon":11,
         "id_movimiento":4,
         "nivel_aprendizaje":12
         }
 ```
 
-## **Tabla Movimiento** 
-- [Estructura de Movimiento]:
-	**Response:**
+## **Tabla Movimiento** <br/>
+[Estructura de Movimiento]: <br/>
+**Response:** <br/> 
 ```json
     {
         "id_movimiento": 5,
@@ -324,39 +322,39 @@ Ejemplo: [valido]:
     }
 ```
 
-## GET All:
-**`api/movimiento`**
-- [Estructura de Movimientos]:
-	**Response:**
+## GET All: <br/>
+**`api/movimiento`** <br/>
+[Estructura de Movimientos]: <br/>
+**Response:**<br/>
 ```json
     [
-        Movimiento1,
-        Movimiento2,
-        ...,
-        Movimiento6,
-        Movimiento7
-        ...,
-        Movimiento12
+        "Movimiento1",
+        "Movimiento2",
+        "...",
+        "Movimiento6",
+        "Movimiento7"
+        "...",
+        "Movimiento12"
     ]
 ```
 
 
-## GET por id:
-**`api/movimiento/:id`**
-(Devuelve la informacion del movimiento con id = :id)
+## GET por id: <br/>
+**`api/movimiento/:id`**<br/>
+(Devuelve la informacion del movimiento con id = :id) <br/>
 
 
-## PATCH:
-**`api/movimiento/:id`** 
+## PATCH: <br/>
+**`api/movimiento/:id`**  <br/>
 
 
-## PUT:
-**`api/movimiento`**
+## PUT: <br/>
+**`api/movimiento`** <br/>
 
 
-## **Tabla Pokemon** 
-- [Estructura de Pokemon]:
-	**Response:**:
+## **Tabla Pokemon**  <br/>
+[Estructura de Pokemon]: <br/>
+**Response:**: <br/>
 ```json
     {
         "id": 15,
@@ -371,32 +369,32 @@ Ejemplo: [valido]:
 ```
 
 
-## GET All:
-**`api/pokemon`**
-- [Estructura de Pokemon]:
-	**Response:**
+## GET All: <br/>
+**`api/pokemon`** <br/>
+[Estructura de Pokemon]: <br/>
+**Response:** <br/>
 ```json
     [
-        Pokemon1,
-        Pokemon2,
-        ...,
-        Pokemon11,
-        ...,
-        Pokemon25
+        "Pokemon1",
+        "Pokemon2",
+        "...",
+        "Pokemon11",
+        "...",
+        "Pokemon25"
     ]
 ```
 
 
-## GET por id:
-**`api/pokemon/:id`**
+## GET por id: <br/>
+**`api/pokemon/:id`** <br/>
 
 
-## PATCH:
-**`api/pokemon/:id`**
+## PATCH: <br/>
+**`api/pokemon/:id`** <br/>
 
 
-## PUT:
-**`api/pokemon`**
+## PUT: <br/>
+**`api/pokemon`** <br/>
 
 
 **[Ejemplos de algunas combinaciones posibles:]**
