@@ -43,29 +43,34 @@ class AprendizajeApiController {
                 }
             } 
         }
-       
-        if(($page > 1) && !isset($limit)){
-            $limit = 10;    // valor por defecto
+
+        if ($limit === null && $page === 1) {
+            $relaciones = $this->aprendizaje_model->getAll($filters, $sorts, null, null, false);
+        }else{
+            if(($page > 0) && !isset($limit)){
+                $limit = 10;    // valor por defecto
+            }
+            
+            if(!is_numeric($page) || !($page > 0)){
+                if(!is_numeric($page)) 
+                    return $this->view->response("Page debe ser de tipo numerico",400);
+                return $this->view->response("Solo es posible paginar por numeros mayores a 0",400);
+            }else{ $page = intval($page);}
+
+            if(isset($limit) ){
+                if(!is_numeric($limit)){
+                    return $this->view->response("Limit debe ser de tipo numerico",400);
+                }else
+                    $limit = empty($limit) ? 10: intval($limit);
+                
+            }
+            $relaciones  = $this->aprendizaje_model->getAll($filters, $sorts,$page, $limit, true);
         }
 
-        if(!is_numeric($page) || !($page > 0)){
-            if(!is_numeric($page)) 
-                return $this->view->response("Page debe ser de tipo numerico",400);
-            return $this->view->response("Solo es posible paginar por numeros mayores a 0",400);
-        }else{ $page = intval($page);}
-
-        if(isset($limit) ){
-            if(!is_numeric($limit)){
-                return $this->view->response("Limit debe ser de tipo numerico",400);
-            }else
-                $limit = empty($limit) ? 10: intval($limit);
-               
-        }
-          
-        $relaciones  = $this->aprendizaje_model->getAll($filters, $sorts,$page, $limit, true);
         if(!$relaciones){
             return $this->view->response("No se encontraron coincidencias para la busqueda", 404);
         }
+        
         if(!isset($filters['id_pokemon']) && isset($filters['id_movimiento']) ){
             $result = $this->generate_Learning_List_By_Movement($relaciones); 
         }else
@@ -381,17 +386,17 @@ class AprendizajeApiController {
                 }
             }else{
                 if(str_contains(strtoupper($param_name) , 'LIMIT') || (strtoupper($param_name) === 'L')){
-                    $limit = $value;
+                    $limit = !empty($value) ? $value :$limit;
                 }else{
                     if(str_contains(strtoupper($param_name) , 'PAGE') || (strtoupper($param_name) === 'P')){
-                        $page = $value;
+                        $page = !empty($value) ? $value: $page;
                     }else{
                         if(!isset($resource_query_fields['pokemon'][$param_name]) && !isset($resource_query_fields['movimiento'][$param_name]) && !isset($resource_query_fields['aprendizaje'][$param_name])) {
                             $invalid_filters++;   //el filtro ingresado no coincide con ningun campo de las tablas 
                         }else{ 
                             if(strtolower($param_name)==="fecha_captura"){
                                 $fecha = DateTime::createFromFormat('d/m/Y', $value);
-                                // Convertir la fecha al formato yyyy-mm-dd
+                                // Convertir la fecha (17/11/2024) al formato mm-dd-yyyy
                                 $filters[$param_name] = (string)($fecha->format('m/d/Y'));
                                 // $filters[$param_name] = "11/17/2024";
                             }else {

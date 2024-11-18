@@ -36,12 +36,12 @@ class AprendizajeModel {
 
      
     public function getTempTable_PaginatedPokemons($JOIN_movimiento =false, $where, $sorts =[],$page = 1, $limit = null){
-        $TABLES = 'pokemon';
-        if($JOIN_movimiento) {$TABLES .= ' JOIN aprendizaje ON (pokemon.id = aprendizaje.FK_id_pokemon)
+        $TABLES = 'aprendizaje JOIN pokemon ON (aprendizaje.FK_id_pokemon = pokemon.id)';
+        if($JOIN_movimiento) {$TABLES .= ' 
                                            JOIN movimiento ON (movimiento.id_movimiento = aprendizaje.FK_id_movimiento)';}  
         
         $tempPokemonsTable ="WITH pokemon_filtrados AS (
-                    SELECT id
+                    SELECT DISTINCT id
                     FROM $TABLES";
 
         $SORT = " ORDER BY pokemon.id";
@@ -120,7 +120,7 @@ class AprendizajeModel {
                 $sql .= " LIMIT " . $limit . " OFFSET ". $offset; 
             }
         }
-
+        
         $query = $this->db->prepare($sql);
         $query->execute($params);
 
