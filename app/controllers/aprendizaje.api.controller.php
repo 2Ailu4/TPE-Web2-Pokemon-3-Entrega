@@ -30,7 +30,6 @@ class AprendizajeApiController {
             $filters = $validQueries['filters'];
             $page = $validQueries['page'];
             $limit = $validQueries['limit'];
-            var_dump("VALIDDDD", $validQueries);
 
             if($validQueries['invalid_filters'] > 0 && $validQueries['invalid_sorts'] > 0){
                 return $this->view->invalid_params_response('"filtros y ordenamientos"');
@@ -175,21 +174,12 @@ class AprendizajeApiController {
 
 
     public function get($req, $res){ 
+
         $id_pokemon = is_numeric($req->params->id_pok)    ? intval($req->params->id_pok) : null;
         $id_movimiento = is_numeric($req->params->id_mov) ? intval($req->params->id_mov) : null;
-       
-        if(!($id_pokemon > 0))
-            return $this->view->typeError_response("id_movimiento", "[Naturales >0]");
-        if(!($id_movimiento > 0))
-            return $this->view->typeError_response("id_pokemon", "[Naturales >0]");
-   
-        $exists_empty_params = $this->exists_empty_params([$id_pokemon, $id_movimiento]);
-        if($exists_empty_params){ 
-             $this->view->invalid_parms_type_response("entero");
-            die();
-        }
-        $this->check_rows_existence_on_tables($id_pokemon, $id_movimiento);
-        
+
+        $this->verify_Params_Aprendizaje($id_pokemon,$id_movimiento);
+
         $aprendizaje = $this->aprendizaje_model->get($id_pokemon,$id_movimiento);
         
         if(!$aprendizaje) return $this->view->server_Error_response();
@@ -202,6 +192,49 @@ class AprendizajeApiController {
          
         $this->view->response($pokemon);
         
+    }
+
+    public function delete($req, $res){ 
+        if(!$res->user) {
+            return $this->view->response("No autorizado", 401);
+        }
+        $id_pokemon = is_numeric($req->params->id_pok)    ? intval($req->params->id_pok) : null;
+        $id_movimiento = is_numeric($req->params->id_mov) ? intval($req->params->id_mov) : null;
+
+        $this->verify_Params_Aprendizaje($id_pokemon,$id_movimiento);
+
+        $this->aprendizaje_model->delete($id_pokemon,$id_movimiento);
+
+        if($this->aprendizaje_model->exists($id_pokemon,$id_movimiento)){
+            return $this->view->server_Error_response();
+        } 
+        return $this->view->response("El movimiento con $id_movimiento se elimino exitosamente."); 
+    }
+
+    private function verify_Params_Aprendizaje($id_pokemon,$id_movimiento){
+        if(!($id_pokemon > 0)){
+            $this->view->typeError_response("id_movimiento", "[Naturales >0]");
+            die();
+        }
+            
+        if(!($id_movimiento > 0)){
+            $this->view->typeError_response("id_pokemon", "[Naturales >0]");
+            die();
+        }
+
+        $exists_empty_params = $this->exists_empty_params([$id_pokemon, $id_movimiento]);
+        if($exists_empty_params){ 
+            $this->view->invalid_parms_type_response("entero");
+            die();
+        }
+        $this->check_rows_existence_on_tables($id_pokemon, $id_movimiento);
+        
+        $aprendizaje = $this->aprendizaje_model->get($id_pokemon,$id_movimiento);
+        
+        if(!$aprendizaje) {
+            $this->view->server_Error_response();
+            die();
+        } 
     }
 
 
@@ -288,7 +321,6 @@ class AprendizajeApiController {
         return false;
     }
     private function check_rows_existence_on_tables($id_pokemon,$id_movimiento){
-        //chequea si el pokemon, movimiento y la relacion
 
         $exists = $this->aprendizaje_model->exists($id_pokemon, $id_movimiento);
 
@@ -327,7 +359,7 @@ class AprendizajeApiController {
          
         foreach($params as $param_name => $value){          // separa query-params de ordenamiento y de filtro
             if(stripos($param_name,"sort_") === 0) {                // [case-insensitive]: sort_nombre_movimiento  coincide 's' de "sort_" en posicion 0 de param_name https://www.php.net/manual/en/function.stripos.php
-                if (strtoupper($param_name) !=='ID_ENTRENADOR'){ echo"fallo id";}
+               
                 if (!str_contains(strtoupper($param_name),"ID_ENTRENADOR") && str_contains(strtoupper($param_name), 'ID')) {
                     continue;  // pasa al siguiente elemento del for
                 }
@@ -348,7 +380,6 @@ class AprendizajeApiController {
                     }else $sorts[$field] = $orderBy." ASC";   
                 }
             }else{
-                var_dump("111111",$param_name ,$value);
                 if(str_contains(strtoupper($param_name) , 'LIMIT') || (strtoupper($param_name) === 'L')){
                     $limit = $value;
                 }else{
@@ -358,27 +389,19 @@ class AprendizajeApiController {
                         if(!isset($resource_query_fields['pokemon'][$param_name]) && !isset($resource_query_fields['movimiento'][$param_name]) && !isset($resource_query_fields['aprendizaje'][$param_name])) {
                             $invalid_filters++;   //el filtro ingresado no coincide con ningun campo de las tablas 
                         }else{ 
-                            var_dump("22222", $param_name,$value);
                             if(strtolower($param_name)==="fecha_captura"){
                                 $fecha = DateTime::createFromFormat('d/m/Y', $value);
-
                                 // Convertir la fecha al formato yyyy-mm-dd
-                                //$fecha_mysql = $fecha->format('m-d-Y');
-                                 
-                                // var_dump($fecha->format('m/d/Y'));
-                                $filters[$param_name] = $fecha->format('m/d/Y');
-
+                                $filters[$param_name] = (string)($fecha->format('m/d/Y'));
+                                // $filters[$param_name] = "11/17/2024";
                             }else {
                                 $filters[$param_name] = $value;
-                                var_dump($filters);
                             }
                         }
                     } 
                 }
             }
         }
-        // var_dump( ['filters' => $filters, 'sorts'=> $sorts, 'limit' => $limit, 'page' => $page, 'invalid_filters' => $invalid_filters, 'invalid_sorts' => $invalid_sorts]);
-
         return ['filters' => $filters, 'sorts'=> $sorts, 'limit' => $limit, 'page' => $page, 'invalid_filters' => $invalid_filters, 'invalid_sorts' => $invalid_sorts];
     }
 

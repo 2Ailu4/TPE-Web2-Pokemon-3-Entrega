@@ -8,9 +8,25 @@ class AprendizajeModel {
         $this->db = new PDO("mysql:host=".MYSQL_HOST .
                             ";dbname=".MYSQL_DB.";charset=utf8", 
                             MYSQL_USER, MYSQL_PASS);
+        $this->_deploy();
     }
-
-    
+    private function _deploy() {
+        $query = $this->db->query('SHOW TABLES');
+        $tables = $query->fetchAll();
+        if (count($tables) == 0) { 
+            $sqlFile = './tpe-web2-hiese-peralta.sql';
+            $sql = file_get_contents($sqlFile);
+            
+            // Arreglo para separar en consultas
+            $queries = explode(';', $sql);
+            foreach ($queries as $query) {
+                $query = trim($query); // quitamos espacios en blanco al inicio y fin             
+                if (!empty($query)) {
+                    $this->db->query($query);
+                }
+            }
+        }
+    }
     public function exists($id_pokemon , $id_movimiento){
         $query = $this->db->prepare('SELECT 1 FROM aprendizaje WHERE FK_id_pokemon = :id_pok AND FK_id_movimiento= :id_mov');
         $query->execute([':id_pok' => $id_pokemon, ':id_mov' => $id_movimiento]);
@@ -105,9 +121,6 @@ class AprendizajeModel {
             }
         }
 
-        var_dump("SWL---------<", $sql);
-        var_dump("EXECUTEEE", $params);
-
         $query = $this->db->prepare($sql);
         $query->execute($params);
 
@@ -134,7 +147,10 @@ class AprendizajeModel {
         return ['id_pokemon' => intval($id_pokemon) , 'id_movimiento' => intval($id_movimiento)];
         
     }
-   
+    public function delete($id_pok,$id_mov){
+        $query = $this->db->prepare('DELETE FROM aprendizaje WHERE (FK_id_pokemon = :id_pok AND FK_id_movimiento = :id_mov)');
+        $query->execute([':id_pok' => $id_pok,':id_mov' => $id_mov]);
+    }
     public function update($old_id_pokemon, $old_id_movimiento, $ASSOC_UPD_params){
         $whereParams="FK_id_pokemon = :OLD_id_pok and FK_id_movimiento = :OLD_id_mov";
         $fields = $this->generate_update_params($ASSOC_UPD_params); 
@@ -232,13 +248,16 @@ class AprendizajeModel {
                 $key = ":$filter_column";
                 if($values['type']==="string") {$sql_OP = ' LIKE ';}
                 if($values['type']==="date") {
-                    //"DATE(fecha_registro) = STR_TO_DATE('11/16/2024', '%m/%d/%Y');"
-                    $where["$filter_column"] = "DATE(".$values['query_column'].")" . $sql_OP . $key; 
-                    $params[$key] = " STR_TO_DATE(".$filters[$filter_column].", '%m/%d/%Y') ";
-                } // ver la fecha como se consulta
+                    $where["$filter_column"] = "DATE(".$values['query_column'].")" . $sql_OP . " STR_TO_DATE("."'".$filters[$filter_column]."'".", '%m/%d/%Y') "; 
+                }
                 else {
-                    $where[$filter_column] = $values['query_column'] . $sql_OP . $key;   
-                    $params[$key] = $filters[$filter_column];
+                    if(strtoupper($filter_column)==="DESCRIPCION_MOVIMIENTO"){
+                        $where[$filter_column] = $values['query_column'] . $sql_OP."'"."%". $filters[$filter_column] ."%"."'";   
+                    }else{
+                      $where[$filter_column] = $values['query_column'] . $sql_OP . $key;   
+                      $params[$key] = $filters[$filter_column];  
+                    }
+                    
                 }
             }
         }

@@ -8,8 +8,26 @@ class PokemonModel {
         $this->db = new PDO("mysql:host=".MYSQL_HOST .
                             ";dbname=".MYSQL_DB.";charset=utf8", 
                             MYSQL_USER, MYSQL_PASS);
+        $this->_deploy();
     }
-    
+ 
+    private function _deploy() {
+        $query = $this->db->query('SHOW TABLES');
+        $tables = $query->fetchAll();
+        if (count($tables) == 0) { 
+            $sqlFile = './tpe-web2-hiese-peralta.sql';
+            $sql = file_get_contents($sqlFile);
+            
+            // Arreglo para separar en consultas
+            $queries = explode(';', $sql);
+            foreach ($queries as $query) {
+                $query = trim($query); // quitamos espacios en blanco al inicio y fin             
+                if (!empty($query)) {
+                    $this->db->query($query);
+                }
+            }
+        }
+    }
     public function exists($id){
         $query = $this->db->prepare('SELECT 1 FROM pokemon WHERE id=?');
         $query->execute([$id]);
@@ -72,7 +90,30 @@ class PokemonModel {
 
         return $this->db->lastInsertId();
     }
+    public function getTrainer($id_trainer){
+        $query = $this->db->prepare('SELECT * FROM entrenadorpokemon WHERE id_entrenador = :id_entrenador');
+        $query->execute([":id_entrenador"=>$id_trainer]);
 
+        $trainer = $query->fetch(PDO::FETCH_ASSOC);
+
+        return $trainer;
+    }
+    
+    public function getFkTrainerByPokemon($id_Pokemon){
+        $query = $this->db->prepare('SELECT FK_id_entrenador FROM pokemon WHERE id=?');
+        $query->execute([$id_Pokemon]);
+        $trainer = $query->fetch(PDO::FETCH_OBJ);
+    
+        return $trainer;
+    }
+    public function releasePokemon($id_Pokemon){ 
+        $query = $this->db->prepare("UPDATE pokemon
+                                    SET  FK_id_entrenador = null 
+                                    WHERE ?");
+        $query->execute([$id_Pokemon]);
+        return $this->getFkTrainerByPokemon($id_Pokemon);
+    }
+     
 
     public function getPokemonByName($name){
         $query = $this->db->prepare('SELECT nro_pokedex, tipo FROM pokemon WHERE nombre LIKE ?');

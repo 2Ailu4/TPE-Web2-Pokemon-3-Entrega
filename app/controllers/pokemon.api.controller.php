@@ -37,7 +37,6 @@ class PokemonApiController{
         if(!$res->user) {
             return $this->view->response("No autorizado", 401);
         }
-        
         $id_Pokemon = $req->params->id_pok;
         $pokemon = $this->model->get($id_Pokemon);
         if(!$pokemon){
@@ -45,20 +44,34 @@ class PokemonApiController{
         }
         
         $attributesToUpdate = [];
-
+         
+        if(isset($req->body->id_entrenador))
+            $req->body->FK_id_entrenador= $req->body->id_entrenador;
+        unset($req->body->id_entrenador);
+       
         $updateFields = $req->body;
         $fields_to_verify = $this->model->getValid_TableFields();
 
         foreach ($updateFields as $field => $value){   
-            if($field !== "FK_id_entrenador"){
-                if (!isset($fields_to_verify[$field])){
+            if($field !== "FK_id_entrenador"){  //"id_entrenador" puede ser NULL
+                if (strtoupper($field)==="ID"){
+                    return $this->view->restictedAccess_Field($field,400);
+                }
+                if (!isset($fields_to_verify[$field]) ){
                     return $this->view->response("'$field' es un campo invalido",400);
                 }
                 if($fields_to_verify[$field] !== gettype($value)){
                     return $this->view->response("'$field' debe ser de tipo $fields_to_verify[$field]", 400);
                 }
+            }else{
+                if($value!==null && !$this->entrenador_model->getTrainer($value)){
+                    return $this->view->existence_Error_response("Entrenador", $value);  
+                }
+                if(($fields_to_verify[$field] !== gettype($value) && $value!==null))
+                    return $this->view->response("'$field' debe ser de tipo $fields_to_verify[$field]", 400);
+                if(!empty($value) && $value<1)
+                    return $this->view->response("'$field' debe ser de tipo $fields_to_verify[$field]>0", 400);
             }
-            
             // Guardo en $attributesToUpdate solo los campos que se modificaron
             if(!empty($req->body->$field) || $field === 'FK_id_entrenador'  ){ 
                 if($value !== $pokemon->$field){   // verifica si ingreso el mismo valor que el actual al campo a modificar
@@ -66,7 +79,8 @@ class PokemonApiController{
                 } 
             }
         }
-        $attributesToUpdate['id'] = $id_Pokemon; 
+        
+        $attributesToUpdate['id'] = $id_Pokemon;  // evitamos que modifique el id
         $updated = $this->updatePokemonsFields($pokemon, $attributesToUpdate);
         
         $update_attributes=[];
@@ -260,5 +274,28 @@ class PokemonApiController{
         $new_pokemon = $this->model->get($id_New_Pokemon);
         $this->view->response("Se agrego correctamente el nuevo pokemon: ");
         $this->view->response($new_pokemon);
+    }
+
+    public function releasePokemon($req, $res){// Los pokemons no se eliminan, si no que se liberan  
+        if(!$res->user) {
+            return $this->view->response("No autorizado", 401);
+        }   
+        $id_Pokemon = is_numeric($req->params->id_pok) ? intval($req->params->id_pok) : null;
+        
+        if(!($id_Pokemon > 0))
+            return $this->view->typeError_response("id_pokemon", "[Naturales >0]");
+         
+        $is_wild=$this->model->getFkTrainerByPokemon($id_Pokemon)   ;
+
+       
+        if($is_wild->FK_id_entrenador === NULL)
+            return $this->view->response("[Warning]: el pokemon que quieres liberar ya es salvaje!",500);
+
+        $wild_Pokemon=$this->model->releasePokemon($id_Pokemon);
+
+        if($wild_Pokemon->FK_id_entrenador !== null)
+            return $this->view->server_Error_response();
+        return $this->view->response("El pokemon $id_Pokemon se libero exitosamente. Ahora es un pokemon salvaje! "); 
+       
     }
 }

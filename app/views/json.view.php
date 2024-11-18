@@ -89,6 +89,13 @@
             public function invalid_Field($field){
                 $this->response("'$field' es un campo invalido",400);
             }
+        public function restictedAccess_Field($field){
+            $this->response("[Restricted-Access]:No esta permitida la modificacion del campo '$field'",400);
+        }
+        public function success_Operation($operation){
+            $this->response("[Success-Operation]: la $operation fue realizada con exito",200);
+        }
+            
        
        
     }

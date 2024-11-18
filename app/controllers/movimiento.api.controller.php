@@ -51,6 +51,9 @@ class MovimientoApiController{
             if (!isset($fields_to_verify[$field])){
                 return $this->view->invalid_Field($field);
             }
+            if (strtoupper($field)==="ID_MOVIMIENTO"){
+                return $this->view->restictedAccess_Field($field,400);
+            }
             if($fields_to_verify[$field] !== gettype($updateField)){
                 return $this->view->typeError_response($field,$fields_to_verify[$field]);
             }
@@ -114,6 +117,26 @@ class MovimientoApiController{
         }
 
         return $this->view->response($new_movimiento);
+    }
+
+    public function delete($req, $res){// Los pokemons no se eliminan, si no que se liberan  
+        if(!$res->user) {
+            return $this->view->response("No autorizado", 401);
+        }   
+        $id_movimiento = is_numeric($req->params->id_mov) ? intval($req->params->id_mov) : null;
+        
+        if(!($id_movimiento > 0))
+            return $this->view->typeError_response("id_movimiento", "[Naturales >0]");
+         
+        
+        if(!$this->model->exists($id_movimiento))
+            return $this->view->existence_Error_response("[Movimiento]", $id_movimiento);
+
+        $this->model->delete($id_movimiento);
+        if($this->model->exists($id_movimiento)){
+            $this->view->response("El movimiento con $id_movimiento se elimino exitosamente."); 
+        }else
+            $this->view->server_Error_response(); 
     }
 
 
