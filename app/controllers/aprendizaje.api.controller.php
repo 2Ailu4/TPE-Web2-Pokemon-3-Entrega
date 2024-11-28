@@ -26,11 +26,7 @@ class AprendizajeApiController {
         $filters = []; $sorts = []; $limit=null; $page=1;
         if($req->query !== null){
             $validQueries = $this->getValid_Sorts_And_Filters($req->query,$this->aprendizaje_model->getQueryFields()); 
-            $sorts = $validQueries['sorts'];
-            $filters = $validQueries['filters'];
-            $page = $validQueries['page'];
-            $limit = $validQueries['limit'];
-
+            
             if($validQueries['invalid_filters'] > 0 && $validQueries['invalid_sorts'] > 0){
                 return $this->view->invalid_params_response('"filtros y ordenamientos"');
             }else{
@@ -42,27 +38,31 @@ class AprendizajeApiController {
                     }
                 }
             } 
+            $sorts = $validQueries['sorts'];
+            $filters = $validQueries['filters'];
+            $page = $validQueries['page'];
+            $limit = $validQueries['limit'];
         }
-
-        if ($limit === null && $page === 1) {
+       
+        if ($limit === null && $page === 1) {   //si no pagino
             $relaciones = $this->aprendizaje_model->getAll($filters, $sorts, null, null, false);
         }else{
             if(($page > 0) && !isset($limit)){
                 $limit = 10;    // valor por defecto
             }
-            
+
             if(!is_numeric($page) || !($page > 0)){
                 if(!is_numeric($page)) 
                     return $this->view->response("Page debe ser de tipo numerico",400);
                 return $this->view->response("Solo es posible paginar por numeros mayores a 0",400);
-            }else{ $page = intval($page);}
+            }
+            $page = intval($page);
 
             if(isset($limit) ){
                 if(!is_numeric($limit)){
                     return $this->view->response("Limit debe ser de tipo numerico",400);
                 }else
-                    $limit = empty($limit) ? 10: intval($limit);
-                
+                    $limit = ($limit === 0) ? 10: intval($limit);   //si no me especifican un valor para limit o este es 0 le asigno un valor por defecto
             }
             $relaciones  = $this->aprendizaje_model->getAll($filters, $sorts,$page, $limit, true);
         }
@@ -72,8 +72,10 @@ class AprendizajeApiController {
         }
         
         if(!isset($filters['id_pokemon']) && isset($filters['id_movimiento']) ){
+            //listado invertido: se muestra para un mov todos los pok que lo conocen o conoceran
             $result = $this->generate_Learning_List_By_Movement($relaciones); 
         }else
+            //listado por defecto: se muestra cada pokemon con los movimientos que conoce o conocera
             $result = $this->generate_Learning_List($relaciones); 
          
         $this->view->response($result);
@@ -119,14 +121,14 @@ class AprendizajeApiController {
             die();
         }
 
-        foreach($relaciones as $movement_learned){
+        foreach($relaciones as $relacion){
 
-            $pokemon = $this->pokemon_model->get($movement_learned->FK_id_pokemon); 
+            $pokemon = $this->pokemon_model->get($relacion->FK_id_pokemon); 
             if (!$pokemon) {
-                $this->view->response("Inconsistencias en DB entre tablas 'aprende' & 'pokemon' (No existe el pokemon con id:$movement_learned->FK_id_pokemon)", 500);
+                $this->view->response("Inconsistencias en DB entre tablas 'aprende' & 'pokemon' (No existe el pokemon con id:$relacion->FK_id_pokemon)", 500);
                 die();
             }
-            $pokemon->nivel_aprendizaje = $movement_learned->nivel_aprendizaje;
+            $pokemon->nivel_aprendizaje = $relacion->nivel_aprendizaje;
             array_push($movement->pokemons, $pokemon);
         }
         $result[] = $movement; 
@@ -218,12 +220,12 @@ class AprendizajeApiController {
 
     private function verify_Params_Aprendizaje($id_pokemon,$id_movimiento){
         if(!($id_pokemon > 0)){
-            $this->view->typeError_response("id_movimiento", "[Naturales >0]");
+            $this->view->typeError_response("id_pokemon", "[Naturales >0]");
             die();
         }
             
         if(!($id_movimiento > 0)){
-            $this->view->typeError_response("id_pokemon", "[Naturales >0]");
+            $this->view->typeError_response("id_movimiento", "[Naturales >0]");
             die();
         }
 
@@ -233,13 +235,6 @@ class AprendizajeApiController {
             die();
         }
         $this->check_rows_existence_on_tables($id_pokemon, $id_movimiento);
-        
-        $aprendizaje = $this->aprendizaje_model->get($id_pokemon,$id_movimiento);
-        
-        if(!$aprendizaje) {
-            $this->view->server_Error_response();
-            die();
-        } 
     }
 
 
@@ -274,7 +269,7 @@ class AprendizajeApiController {
         $attributesToUpdate = [];
         if(!empty($req->body->id_pokemon)){
             $pokemoToUpdate = $req->body->id_pokemon;
-            if($this->pokemon_model->exists($pokemoToUpdate)){
+            if($this->pokemon_model->exists($pokemoToUpdate)){  //debe existir el nuevo pokemon
                 $attributesToUpdate['FK_id_pokemon'] = intval($pokemoToUpdate);
             }else{
                 return $this->view->response("No existe el pokemon con id:$pokemoToUpdate. Por favor intentelo de nuevo!!", 404);
@@ -282,7 +277,7 @@ class AprendizajeApiController {
         }
         if(!empty($req->body->id_movimiento)){
             $movimientoToUpdate = $req->body->id_movimiento;
-            if($this->pokemon_model->exists($movimientoToUpdate)){
+            if($this->pokemon_model->exists($movimientoToUpdate)){  //debe existir el nuevo movimiento
                 $attributesToUpdate['FK_id_movimiento'] = intval($movimientoToUpdate);
             }else{
                 return $this->view->response("No existe el movimiento con id:$movimientoToUpdate. Por favor intentelo de nuevo!!", 404);
@@ -296,15 +291,26 @@ class AprendizajeApiController {
                 return $this->view->response("ERROR: rango de aprednizaje debe encontrarse entre:[1-100]", 404);
             }
         }
-
+        $allreadyExists=false;
+        if(isset($attributesToUpdate ['FK_id_pokemon']) && isset($attributesToUpdate ['FK_id_movimiento'])){
+            $allreadyExists = $this->aprendizaje_model->exists($attributesToUpdate['FK_id_pokemon'], $attributesToUpdate ['FK_id_movimiento']);
+        }
+        if(isset($attributesToUpdate ['FK_id_pokemon']) && !isset($attributesToUpdate ['FK_id_movimiento'])){
+            $allreadyExists = $this->aprendizaje_model->exists($attributesToUpdate['FK_id_pokemon'], $id_movimiento);
+        }
+        if(!isset($attributesToUpdate ['FK_id_pokemon']) && isset($attributesToUpdate ['FK_id_movimiento'])){
+            $allreadyExists = $this->aprendizaje_model->exists($id_pokemon, $attributesToUpdate ['FK_id_movimiento']);
+        }
+       
         $new_id_pokemon =isset($attributesToUpdate ['FK_id_pokemon']) ? $attributesToUpdate['FK_id_pokemon'] : $id_pokemon;
         $new_id_movimiento =isset($attributesToUpdate ['FK_id_movimiento']) ? $attributesToUpdate['FK_id_movimiento'] : $id_movimiento;
-        $allreadyExists = $this->aprendizaje_model->exists($new_id_pokemon, $new_id_movimiento);
         if($allreadyExists){ return $this->view->response(" Entrada duplicada :la relacion entre pokemon:$new_id_pokemon y el movimiento:$new_id_movimiento ya existe",404);}
 
         $update = null;
         if(!empty($attributesToUpdate)){
             $update= $this->aprendizaje_model->update($id_pokemon, $id_movimiento, $attributesToUpdate);
+        }else{
+            return $this->view->response("No se modifico ningun campo", 400);
         }
 
         if(!empty($update)){
@@ -362,26 +368,26 @@ class AprendizajeApiController {
         $invalid_filters = 0;
         $invalid_sorts = 0;
          
-        foreach($params as $param_name => $value){          // separa query-params de ordenamiento y de filtro
-            if(stripos($param_name,"sort_") === 0) {                // [case-insensitive]: sort_nombre_movimiento  coincide 's' de "sort_" en posicion 0 de param_name https://www.php.net/manual/en/function.stripos.php
+        foreach($params as $param_name => $value){  // separa query-params de ordenamiento y de filtro
+            if(stripos($param_name,"sort_") === 0) {   // [case-insensitive]: sort_nombre_movimiento  coincide 's' de "sort_" en posicion 0 de param_name https://www.php.net/manual/en/function.stripos.php
                
                 if (!str_contains(strtoupper($param_name),"ID_ENTRENADOR") && str_contains(strtoupper($param_name), 'ID')) {
                     continue;  // pasa al siguiente elemento del for
                 }
                 //$param_name = sort_nombre_movimiento=desc  ==> nombre_movimiento=desc
-                $field = substr($param_name,strlen("sort_"));           // toma el sub-string a partir del string que se quiere remover a partir de la posicion 0
+                $field = substr($param_name,strlen("sort_"));  // toma el sub-string a partir del string que se quiere remover a partir de la posicion 0
                       
                 $curr_table='';
                 foreach($resource_query_fields as $table_name =>$values){//recorre los campos de las tres tablas
                     if(empty($curr_table) && isset($resource_query_fields[$table_name][$field]))//si el campo ingresado coincide con alguno de los campos de las tablas termina
-                        $curr_table = $table_name;
+                        $curr_table = $table_name;  //guardo el nombre de la tabla a la cual hace referencia el campo ingresado
                 }
-                if(empty($curr_table)) {  //no encontro coincidencia, el sort ingresado no es parte de los campos de las tablas 
-                    $invalid_sorts++; 
+                if(empty($curr_table)) {  //no encontro coincidencia, 
+                    $invalid_sorts++; // el sort ingresado no es parte de los campos de las tablas 
                 }else {
-                    $orderBy = $curr_table . '.' . strtolower("$field");
-                    if(strtoupper($value) === 'DESC'){
-                        $sorts[$field] = $orderBy." DESC" ;
+                    $orderBy = $curr_table . '.' . strtolower("$field");    //ej: pokemon.nombre
+                    if(strtoupper($value) === 'DESC'){  // sort_nombre=DESC
+                        $sorts[$field] = $orderBy." DESC" ; //ej: pokemon.nombre DESC
                     }else $sorts[$field] = $orderBy." ASC";   
                 }
             }else{

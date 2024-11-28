@@ -40,9 +40,10 @@ class AprendizajeModel {
         if($JOIN_movimiento) {$TABLES .= ' 
                                            JOIN movimiento ON (movimiento.id_movimiento = aprendizaje.FK_id_movimiento)';}  
         
-        $tempPokemonsTable ="WITH pokemon_filtrados AS (
-                    SELECT DISTINCT id
-                    FROM $TABLES";
+        //WITH se usa para crear un conjunto de resultados temporales que se pueden referenciar en otras instrucciones
+        $tempPokemonsTable ="WITH pokemon_filtrados AS (    
+                            SELECT DISTINCT id
+                            FROM $TABLES";
 
         $SORT = " ORDER BY pokemon.id";
         
@@ -54,7 +55,7 @@ class AprendizajeModel {
         if(isset($limit)){                                
             $offset = (int)(($page*$limit) - $limit);  
             $tempPokemonsTable .= " LIMIT " . (int)$limit 
-            . " OFFSET ". (int)$offset . ")";    
+                                    . " OFFSET ". (int)$offset . ")";    
         }
         return $tempPokemonsTable;   
     }
@@ -68,7 +69,7 @@ class AprendizajeModel {
         $where  = [];   // arreglo de condiciones ['filter_name' => "pokemon.nombre = :filter_name", 'filter_nro_pokedex' => "nro_pokedex = :filter_nro_pokedex",..]
         $params = [];   // arreglo de parametros  [':filter_name' => "Bulbasaur", ':filter_nro_pokedex' => 1,..]
          
-        $valid_query_params = $this->_getQueryFields_WITH_TableColumns();
+        $valid_query_params = $this->_getQueryFields_WITH_TableColumns();   //todos los campos de las tablas
         foreach($valid_query_params as $table_name => $validQuerys){            // $validQuerys: campos de cada tabla(table_name).Ej pokemon: [id,nro_pok,..]
             $WHERE_params=$this->get_WHERE_params($filters,$validQuerys);
             if(!empty($WHERE_params['where'])){
@@ -90,8 +91,8 @@ class AprendizajeModel {
             if(isset($limit) && $paginate_by_pokemons) {$TABLES .= ' JOIN pokemon_filtrados ON aprendizaje.FK_id_pokemon = pokemon_filtrados.id';}
             if(!empty($sorts)){
                 if( isset($sorts['id_entrenador'])){
-                    $aux = explode(".",$sorts['id_entrenador']);
-                    $real_table_name=implode(".FK_",$aux);
+                    $aux = explode(".",$sorts['id_entrenador']); //$sorts['id_entrenador'] = pokemon.id_entrenador ==> string[pokemon,id_entrenador]
+                    $real_table_name=implode(".FK_",$aux);  //"pokemon" . ".FK_" . "id_entrenador"
                     $sorts['id_entrenador']=$real_table_name;
                 }
                 $SORT = ' ORDER BY '.implode(', ',$sorts);
@@ -101,26 +102,21 @@ class AprendizajeModel {
         
         $sql = "SELECT $SELECT_attributes FROM $TABLES "; 
         
-        if(isset($limit) && $paginate_by_pokemons){
+        if(isset($limit) && $paginate_by_pokemons){ //si se quiere paginar
             if(isset($JOINs['movimiento'])){
                 $temp_Table = $this->getTempTable_PaginatedPokemons(true, $where, $sorts, $page, $limit);
             }else{
                 $temp_Table = $this->getTempTable_PaginatedPokemons(false, $where, $sorts, $page, $limit);
             }
             $sql = $temp_Table . "
-                  " . $sql;
+                     " . $sql;
         }
 
         if(!empty($where)){$sql .= " WHERE ( (" . implode(') AND ( ', $where).") ) ";}
         if($SORT){$sql .=  $SORT;}
 
-        if(isset($limit)){ // si seteo limite
-            if(!$paginate_by_pokemons){ // solo en caso de que no se quiera paginar por pokemon
-                $offset = ($page*$limit) - $limit;  
-                $sql .= " LIMIT " . $limit . " OFFSET ". $offset; 
-            }
-        }
-        
+        var_dump($sql);
+
         $query = $this->db->prepare($sql);
         $query->execute($params);
 
@@ -147,10 +143,12 @@ class AprendizajeModel {
         return ['id_pokemon' => intval($id_pokemon) , 'id_movimiento' => intval($id_movimiento)];
         
     }
+
     public function delete($id_pok,$id_mov){
         $query = $this->db->prepare('DELETE FROM aprendizaje WHERE (FK_id_pokemon = :id_pok AND FK_id_movimiento = :id_mov)');
         $query->execute([':id_pok' => $id_pok,':id_mov' => $id_mov]);
     }
+
     public function update($old_id_pokemon, $old_id_movimiento, $ASSOC_UPD_params){
         $whereParams="FK_id_pokemon = :OLD_id_pok and FK_id_movimiento = :OLD_id_mov";
         $fields = $this->generate_update_params($ASSOC_UPD_params); 
@@ -159,15 +157,16 @@ class AprendizajeModel {
         $ASSOC_Array[':OLD_id_pok'] = intval($old_id_pokemon);
         $ASSOC_Array[':OLD_id_mov'] = intval($old_id_movimiento);
         
-        $updateParams = $fields['SET_params'];
+        $updateParams = $fields['SET_params'];  // ej: 'nivel_apredizaje' = :nivel
 
         $query = $this->db->prepare("UPDATE aprendizaje SET $updateParams WHERE $whereParams");
         $query->execute($ASSOC_Array);
-        if ($query->rowCount() > 0){
-            return $fields['ASSOC_ARRAY'];
-        }
-        else
-            return false;
+        // if ($query->rowCount() > 0){
+        //     return $fields['ASSOC_ARRAY'];
+        // }
+        // else
+        //     return false;
+        return $query->rowCount() > 0;
     }
 
     private function _getQueryFields_WITH_TableColumns(){
